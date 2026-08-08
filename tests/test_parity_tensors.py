@@ -20,11 +20,6 @@ import torch
 from jbbind.core.features.build import build_chain_graph
 
 
-@pytest.fixture(scope="module")
-def built(request):
-    pass
-
-
 def _build(fx):
     cg = build_chain_graph(fx.nodes, fx.links, fx.full_esm)
     assert cg is not None, f"{fx.chain}: build_chain_graph returned None"

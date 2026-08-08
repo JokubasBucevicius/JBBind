@@ -49,8 +49,9 @@ function render() {
   const labels = state.meta?.setups?.[setup]?.label_names || [];
   $("m-setup-desc").textContent = state.meta?.setups?.[setup]?.hint || "";
 
-  const body = $("metrics-body");
-  body.replaceChildren(
+  // Several of these return null when a setup has no curves or no 3-class table;
+  // replaceChildren would stringify a null into the page, so drop them here.
+  const cards = [
     caveats(setup),
     datasetCard(setup),
     comparisonCard(setup, node, labels),
@@ -58,7 +59,8 @@ function render() {
     curvesCard(setup, node, labels, "roc"),
     confusionCard(setup, node, labels),
     threeClassCard(setup),
-  );
+  ].filter(Boolean);
+  $("metrics-body").replaceChildren(...cards);
 }
 
 /* ------------------------------------------------------------------ cards */
@@ -193,7 +195,8 @@ function confusionCard(setup, node, labels) {
       "Row-normalised: each row sums to 100%. The bottom row is recall; the wide " +
       "false-positive column on the top row is the over-prediction the focal loss buys."),
     el("div", { class: "chart-grid" },
-      ...labels.flatMap((label) => archs.map((a) => confusionPanel(node, a, label)))));
+      ...labels.flatMap((label) => archs.map((a) => confusionPanel(node, a, label)))
+               .filter(Boolean)));
 }
 
 function threeClassCard(setup) {
