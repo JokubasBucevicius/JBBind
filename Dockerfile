@@ -41,10 +41,20 @@ ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cpu
 ARG ESM_LOCAL=""
 
 # bash/coreutils/awk/sed/grep are required: the voronota wrapper scripts are bash and
-# call mktemp, awk and sed. tini reaps the subprocesses voronota spawns.
+# call mktemp, awk and sed. tini reaps the subprocesses voronota spawns. curl fetches the
+# ESM weights below.
+#
+# The CUDA base images ship no Python, so install one when the base does not provide it
+# (python:3.13-slim already has it and this branch is a no-op there).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        bash coreutils gawk sed grep ca-certificates tini \
-    && rm -rf /var/lib/apt/lists/*
+        bash coreutils gawk sed grep ca-certificates curl tini \
+    && if ! command -v python >/dev/null 2>&1; then \
+         apt-get install -y --no-install-recommends python3 python3-pip python3-venv \
+         && ln -sf /usr/bin/python3 /usr/local/bin/python \
+         && ln -sf /usr/bin/pip3 /usr/local/bin/pip; \
+       fi \
+    && rm -rf /var/lib/apt/lists/* \
+    && python --version && pip --version
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -60,7 +70,13 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --index-url "${TORCH_INDEX_URL}" --extra-index-url https://pypi.org/simple \
+# --break-system-packages is a no-op on python:3.13-slim; it is needed only on the
+# Debian/Ubuntu-based CUDA images, whose system Python is PEP 668 "externally managed".
+RUN pip install --no-cache-dir --break-system-packages \
+        --index-url "${TORCH_INDEX_URL}" --extra-index-url https://pypi.org/simple \
+        -r requirements.txt \
+ || pip install --no-cache-dir \
+        --index-url "${TORCH_INDEX_URL}" --extra-index-url https://pypi.org/simple \
         -r requirements.txt
 
 COPY --from=voronota /build/src/expansion_js/voronota-js /usr/local/bin/voronota-js
