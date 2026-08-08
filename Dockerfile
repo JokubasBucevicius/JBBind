@@ -106,6 +106,11 @@ COPY tests/ /app/tests/
 COPY pytest.ini /app/
 RUN chmod +x /app/tools/describe-receptor-chain
 
+# A real `jbbind` executable, so `docker run <img> jbbind ...` works alongside the
+# default uvicorn CMD.
+RUN printf '#!/bin/sh\ncd /app && exec python -m jbbind.cli "$@"\n' > /usr/local/bin/jbbind \
+    && chmod +x /usr/local/bin/jbbind
+
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin jbbind \
     && mkdir -p /data/cache && chown -R 10001:10001 /data /app
 USER 10001

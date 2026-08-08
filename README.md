@@ -301,9 +301,10 @@ verifiable rather than a fork that quietly drifts.
 - **Structures without SEQRES** (AlphaFold models, minimised structures) fall back to the
   observed sequence, which changes the ESM alignment relative to training. The app warns
   loudly and never does this silently.
-- **The web UI has not been rendered in a browser in this environment** — no browser or
-  node is installed on the build host. The API, CLI and batch paths are exercised
-  end-to-end by tests and by hand; the front-end is not.
+- **The web UI has not been rendered in a browser** — this build host has neither a
+  browser nor node. The API, CLI, batch and container paths are all exercised end-to-end
+  by tests and by hand, and the front-end passes static checks (delimiter balance, every
+  DOM id it references), but nobody has looked at it. That is the one thing to try first.
 
 ## Attribution
 

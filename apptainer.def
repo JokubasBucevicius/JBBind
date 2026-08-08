@@ -113,6 +113,14 @@ From: python:3.13-slim
     done
     test "$(python -c 'import json;print(len(json.load(open("/app/models/MANIFEST.json"))))')" = "20"
     chmod +x /app/tools/describe-receptor-chain
+
+    # A real `jbbind` executable, so `apptainer exec <img> jbbind ...` works. %runscript
+    # only covers `apptainer run`; exec needs something on PATH.
+    cat > /usr/local/bin/jbbind <<'WRAPPER'
+#!/bin/sh
+cd /app && exec python -m jbbind.cli "$@"
+WRAPPER
+    chmod +x /usr/local/bin/jbbind
     rm -rf /opt/stage
     mkdir -p /data/cache
 
