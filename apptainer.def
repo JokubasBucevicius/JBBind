@@ -121,7 +121,10 @@ From: python:3.13-slim
     set -eux
     command -v voronota-js
     python -c "import torch, esm, gemmi, torch_geometric, fastapi; print('imports ok')"
-    cd /app && python -m pytest tests/ -q -x
+    # /app is read-only in the built image, so pytest must not try to write its cache
+    # there. Running from a writable cwd is not enough — disable the cache plugin.
+    cd /tmp && python -m pytest /app/tests -q -x -p no:cacheprovider -p no:warnings \
+        --rootdir=/app -o cache_dir=/tmp/.pytest_cache
 
 %labels
     Name        JBBind

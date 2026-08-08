@@ -120,19 +120,18 @@ def client(tmp_path_factory):
     cfg.models_dir = MODELS
     app = main.create_app(cfg)
 
-    # Skip the real lifespan: it loads 2.6 GB of ESM weights.
+    # The TestClient is built WITHOUT entering its context manager, so the lifespan
+    # never runs. That is deliberate: the lifespan loads 2.6 GB of ESM-2 weights and
+    # eagerly instantiates every checkpoint, which these contract tests do not need
+    # and which would make them unrunnable anywhere the weights are absent.
     state = app.state.app
     result = make_result()
     state.results["testjob"] = result
-    with TestClient(app, raise_server_exceptions=False) as _:
-        pass
-    return TestClient(app), state, result
+    return TestClient(app, raise_server_exceptions=False), state, result
 
 
 def test_healthz_is_cheap(client):
     c, _, _ = client
-    with TestClient(c.app) as tc:
-        pass
     r = c.get("/healthz")
     assert r.status_code == 200 and r.json()["status"] == "ok"
 
