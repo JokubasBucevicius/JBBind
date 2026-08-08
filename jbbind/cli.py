@@ -207,7 +207,52 @@ def main(argv: list[str] | None = None) -> int:
        .set_defaults(func=cmd_info)
 
     args = p.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        print("\ninterrupted", file=sys.stderr)
+        return 130
+    except Exception as exc:
+        # Every deliberate failure carries a .code; anything else is a bug and keeps its
+        # traceback. Without this, the single most likely first-run mistake -- forgetting
+        # voronota on PATH -- greets the user with a stack trace.
+        code = getattr(exc, "code", None)
+        if code is None:
+            raise
+        print(f"error [{code}] {getattr(exc, 'message', exc)}", file=sys.stderr)
+        hint = HINTS.get(code)
+        if hint:
+            print(f"  {hint}", file=sys.stderr)
+        detail = getattr(exc, "stderr", "")
+        if detail:
+            print(f"  --- tool output ---\n{detail.rstrip()}", file=sys.stderr)
+        return 1
+
+
+HINTS = {
+    "VoronotaMissing":
+        "Put voronota-js on PATH, e.g. "
+        "export PATH=\"$PATH:/path/to/voronota/expansion_js\" — or use the container, "
+        "which ships it.",
+    "PdbNotFound":
+        "Check the ID at https://www.rcsb.org, or pass a local .pdb/.cif file instead.",
+    "NoPolymerChains":
+        "This entry has no protein chain long enough to predict on (DNA/RNA-only "
+        "structures are a common case).",
+    "ChainNotFound":
+        "Run `jbbind predict <target> --all-chains` to see which chains exist, or check "
+        "the chain letter — PDB entries and derived datasets often disagree about it.",
+    "SequenceMappingFailed":
+        "The observed residues could not be aligned to the entry's SEQRES sequence, so "
+        "the ESM alignment would be a guess. This usually means an unusual or heavily "
+        "engineered construct.",
+    "TooManyResidues":
+        "Raise JBBIND_MAX_RESIDUES if you really want to run this chain.",
+    "VoronotaTimeout":
+        "Very large chains can exceed the tessellation timeout; try a single chain.",
+    "RcsbUnavailable":
+        "RCSB could not be reached. Check network access, or pass a local file.",
+}
 
 
 if __name__ == "__main__":
