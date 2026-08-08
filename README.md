@@ -212,6 +212,20 @@ a homomer costs one forward pass, not one per chain.
 
 ---
 
+## Performance
+
+Measured on this build host (52-core Xeon, `OMP_NUM_THREADS` unset), CPU only, cold cache:
+
+| chain | residues | total | voronota | ESM-2 | model (5 tasks) |
+|---|---|---|---|---|---|
+| 1YCR A | 109 | 2.6 s | 1.6 s | 0.6 s | 0.39 s |
+| 6LU7 A | 306 | 6.0 s | 4.7 s | 0.8 s | 0.41 s |
+| 1GFL A | 238 | 7.4 s | 3.7 s | 3.4 s | 0.15 s |
+
+Warm cache: **~0.06 s**. Resident memory is **3.3 GB** per worker on CPU (0.7 GB torch +
+2.5 GB ESM-2); on GPU the weights move to VRAM and RSS drops to ~1.3 GB. Run one worker
+and scale with the job queue — a second worker doubles the ESM copy for no throughput gain.
+
 ## API
 
 ```
