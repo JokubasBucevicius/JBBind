@@ -69,3 +69,13 @@ def index() -> dict:
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "parity: compares against the original research code")
+
+    # Single-threaded, deterministic CPU math for the parity assertions.
+    #
+    # GATv2Conv's message passing is a scatter-add, and multi-threaded CPU reductions
+    # accumulate in nondeterministic order — so the same input can differ run to run in
+    # the last bits. That made test_probabilities_match_reference occasionally exceed its
+    # 1e-6 tolerance. The right fix is to remove the nondeterminism, not to loosen the
+    # tolerance: a parity test that passes by luck is not a parity test.
+    torch.set_num_threads(1)
+    torch.use_deterministic_algorithms(True, warn_only=True)
