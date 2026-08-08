@@ -21,21 +21,22 @@
 Bootstrap: docker
 From: python:3.13-slim
 
-# Apptainer runs every %files section before every %post section, so the app code below
-# is already in place when %post runs. Single stage on purpose: a multi-stage def would
-# need a registry or a second build, and the build-tool purge at the end of %post
-# recovers most of what a builder stage would have saved.
-# Apptainer's %files copies a directory INTO the destination, creating the destination
-# first -- so `tools /app/tools` yields /app/tools/tools, not /app/tools. Name the PARENT
-# as the destination. (Docker's COPY has the opposite convention, which is why the
-# Dockerfile writes `COPY tools/ /app/tools/`.)
+# Single stage on purpose: a multi-stage def would need a registry or a second build,
+# and purging the build tools at the end of %post recovers most of what a builder stage
+# would have saved.
+#
+# Apptainer's %files directory semantics are version-dependent and bit us twice: with
+# `tools /app/tools` the payload landed at /app/tools/tools, and with `tools /app` it
+# landed as loose files directly in /app. Rather than guess, stage everything under
+# /opt/stage and have %post put it in place, checking for both layouts. Deterministic,
+# and it fails loudly instead of producing a half-populated /app.
 %files
-    requirements.txt /opt/build/requirements.txt
-    tools /app
-    models /app
-    jbbind /app
-    tests /app
-    pytest.ini /app
+    requirements.txt /opt/stage/requirements.txt
+    tools /opt/stage/tools
+    models /opt/stage/models
+    jbbind /opt/stage/jbbind
+    tests /opt/stage/tests
+    pytest.ini /opt/stage/pytest.ini
 
 %post
     set -eux
@@ -47,7 +48,8 @@ From: python:3.13-slim
 
     # --- voronota, from source (mirrors the Dockerfile's voronota stage)
     VORONOTA_VERSION=1.29.4781
-    cd /opt/build
+    mkdir -p /opt/voronota-build
+    cd /opt/voronota-build
     curl -fsSL -o voronota.tar.gz \
       "https://github.com/kliment-olechnovic/voronota/releases/download/v${VORONOTA_VERSION}/voronota_${VORONOTA_VERSION}.tar.gz"
     tar xf voronota.tar.gz
@@ -60,7 +62,7 @@ From: python:3.13-slim
     pip install --no-cache-dir \
         --index-url "${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}" \
         --extra-index-url https://pypi.org/simple \
-        -r /opt/build/requirements.txt
+        -r /opt/stage/requirements.txt
 
     # --- ESM-2 650M, baked in (mirrors the Dockerfile's weights layer)
     export TORCH_HOME=/opt/torch
@@ -74,19 +76,33 @@ From: python:3.13-slim
     # Build tools are not needed at runtime and are ~400 MB of SIF.
     apt-get purge -y build-essential cmake
     apt-get autoremove -y
-    rm -rf /opt/build /var/lib/apt/lists/*
-
-%files
-    tools/    /app/tools/
-    models/   /app/models/
-    jbbind/   /app/jbbind/
-    tests/    /app/tests/
-    pytest.ini /app/pytest.ini
+    rm -rf /opt/voronota-build /var/lib/apt/lists/*
 
 %post
     set -eux
-    # Fail loudly with a listing rather than a bare chmod error: a %files path mistake
-    # otherwise surfaces as "No such file or directory" with no clue what landed where.
+
+    # Move the staged payload into /app, tolerating either %files layout: the contents
+    # may sit directly in /opt/stage/<name>, or nested one level deeper.
+    rm -rf /app
+    mkdir -p /app
+    for d in tools models jbbind tests; do
+        if [ -d "/opt/stage/$d/$d" ]; then
+            mv "/opt/stage/$d/$d" "/app/$d"
+        elif [ -d "/opt/stage/$d" ]; then
+            mv "/opt/stage/$d" "/app/$d"
+        else
+            echo "ERROR: /opt/stage/$d was not staged. /opt/stage contains:" >&2
+            find /opt/stage -maxdepth 2 >&2
+            exit 1
+        fi
+    done
+    cp /opt/stage/pytest.ini /app/pytest.ini
+
+    # Build artefacts from the host must not travel into the image.
+    find /app -name __pycache__ -type d -prune -exec rm -rf {} + || true
+    find /app -name '*.pyc' -delete || true
+
+    # Fail loudly with a listing rather than a bare chmod error further down.
     for required in /app/tools/describe-receptor-chain /app/jbbind/main.py \
                     /app/models/MANIFEST.json /app/tests/conftest.py; do
         if [ ! -f "$required" ]; then
@@ -97,6 +113,7 @@ From: python:3.13-slim
     done
     test "$(python -c 'import json;print(len(json.load(open("/app/models/MANIFEST.json"))))')" = "20"
     chmod +x /app/tools/describe-receptor-chain
+    rm -rf /opt/stage
     mkdir -p /data/cache
 
 %environment
