@@ -354,4 +354,21 @@ def serialize(result: PredictionResult, user: UserSettings) -> dict:
     }
 
 
-app = create_app()
+_app: FastAPI | None = None
+
+
+def __getattr__(name: str):
+    """Construct the ASGI app only when something actually asks for it.
+
+    ``uvicorn jbbind.main:app`` still works, but merely *importing* this module no
+    longer builds a registry, opens the cache directories and touches the filesystem.
+    That matters in a read-only container, where ``import jbbind.main`` would otherwise
+    fail trying to create /data/cache before anything had a chance to configure it —
+    and it keeps the API contract tests from paying for a full application boot.
+    """
+    global _app
+    if name == "app":
+        if _app is None:
+            _app = create_app()
+        return _app
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
