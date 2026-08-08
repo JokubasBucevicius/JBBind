@@ -59,7 +59,13 @@ class JobQueue:
         #: Serializes the memory-hungry section (ESM forward). Everything else can overlap.
         self.heavy = threading.Semaphore(1)
 
-    def submit(self, kind: str, fn: Callable[[Callable[[str, str], None]], Any]) -> Job:
+    def submit(self, kind: str, fn: Callable[[Callable[[str, str], None], Job], Any]) -> Job:
+        """Queue ``fn(progress, job)``.
+
+        The job is passed in rather than closed over: the worker can start before
+        ``submit`` returns, so a callback that referenced the caller's ``job = submit(...)``
+        variable would race against that assignment and occasionally see it unbound.
+        """
         job = Job(id=uuid.uuid4().hex[:16], kind=kind)
         with self._lock:
             self._jobs[job.id] = job
@@ -78,7 +84,7 @@ class JobQueue:
             job.events.append({"t": time.time(), "stage": stage, "message": message})
 
         try:
-            job.result = fn(progress)
+            job.result = fn(progress, job)
             job.status = "done"
             job.progress = 1.0
         except Exception as exc:

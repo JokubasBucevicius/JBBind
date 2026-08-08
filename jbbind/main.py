@@ -241,7 +241,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             chains, _ = state.pipeline.describe_structure(raw)
             chain_id = chains[0].chain_id
 
-        def run(progress):
+        def run(progress, job):
             with state.jobs.heavy:
                 result = state.pipeline.predict(
                     raw=raw, structure_id=structure_id, source=source,
