@@ -74,32 +74,43 @@ class JobQueue:
         self._pool.submit(self._run, job, fn)
         return job
 
+    #: Error codes we raise deliberately. Anything else is a bug, and keeps a traceback.
+    _EXPECTED_PREFIXES = ("Pdb", "Chain", "Parse", "Sequence", "Voronota", "Rcsb",
+                          "Unsupported", "Payload", "TooMany", "NoPolymer", "NoSurface",
+                          "Busy", "Invalid")
+
     def _run(self, job: Job, fn) -> None:
-        job.status = "running"
         job.started_at = time.time()
+        job.status = "running"
 
         def progress(stage: str, message: str) -> None:
             job.stage = stage
             job.message = message
             job.events.append({"t": time.time(), "stage": stage, "message": message})
 
+        # `status` is assigned LAST in both branches, and every other field is filled in
+        # before it. Pollers and the SSE stream treat a terminal status as "the job is
+        # fully populated", so setting it first would let a client read status="error"
+        # with error=None, or status="done" with no result.
         try:
-            job.result = fn(progress, job)
-            job.status = "done"
+            result = fn(progress, job)
+            job.result = result
             job.progress = 1.0
+            job.finished_at = time.time()
+            job.status = "done"
         except Exception as exc:
-            job.status = "error"
             code = getattr(exc, "code", exc.__class__.__name__)
-            job.error = {
+            error = {
                 "code": code,
                 "message": getattr(exc, "message", str(exc)),
                 "detail": getattr(exc, "stderr", "") or None,
             }
+            if not code.startswith(self._EXPECTED_PREFIXES):
+                error["traceback"] = traceback.format_exc()[-2000:]
+            job.error = error
             job.events.append({"t": time.time(), "stage": "error", "message": str(exc)})
-            if code in ("RuntimeError", "Exception"):  # unexpected: keep the traceback
-                job.error["traceback"] = traceback.format_exc()[-2000:]
-        finally:
             job.finished_at = time.time()
+            job.status = "error"
 
     def get(self, job_id: str) -> Optional[Job]:
         return self._jobs.get(job_id)
