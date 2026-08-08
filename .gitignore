@@ -1,0 +1,41 @@
+# The research tree next door is 802 GB. Be aggressive.
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Container artefacts
+*.sif
+.apptainer-data/
+apptainer-cache/
+apptainer-tmp/
+
+# Runtime caches and outputs
+/data/
+cache/
+results/
+*.log
+
+# Checkpoints and fixtures are tracked deliberately (see below), but nothing else
+# torch-shaped should sneak in.
+/emb/
+/graphs/
+/structures/
+*.npz.tmp*
+*.pt.tmp*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# TRACKED ON PURPOSE, despite the patterns above:
+#   models/**/*.pt          20 checkpoints, ~205 MB total — the app is useless without them
+#   models/MANIFEST.json    provenance + sha256 of each checkpoint
+#   models/METRICS.json     precomputed dashboard data (~250 KB)
+#   tests/data/**           golden parity fixtures (~12 MB)
+# Use git-lfs for models/ and tests/data/ if this repo gets pushed anywhere shared.
+!models/**/*.pt
+!tests/data/**

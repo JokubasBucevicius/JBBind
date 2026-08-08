@@ -1,0 +1,631 @@
+{
+  "protein_nucleic/mlp": {
+    "setup": "protein_nucleic",
+    "arch": "mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/mlp/model.pt",
+    "sha256": "32dc1293b4cb2562364f397d006d24304f67f4667d8cab468895636c1460d808",
+    "size_bytes": 7662077,
+    "metrics": {
+      "F1 (Protein)": 0.43917444719245885,
+      "Precision (Protein)": 0.3135093411481501,
+      "Recall (Protein)": 0.7329758696736028,
+      "Bal Acc (Protein)": 0.7022178891396212,
+      "ROC AUC (Protein)": 0.7760456762767719,
+      "PR AUC (Protein)": 0.43608505899172756,
+      "F1 (Nucleic acid)": 0.2781731315358658,
+      "Precision (Nucleic acid)": 0.2309057629374896,
+      "Recall (Nucleic acid)": 0.3497731473701899,
+      "Bal Acc (Nucleic acid)": 0.6730793414717868,
+      "ROC AUC (Nucleic acid)": 0.8503863991053084,
+      "PR AUC (Nucleic acid)": 0.19487205953569106,
+      "F1 (macro)": 0.35867378936416233,
+      "Precision (macro)": 0.2722075520428199,
+      "Recall (macro)": 0.5413745085218964,
+      "ROC AUC (macro)": 0.8132160376910402,
+      "PR AUC (macro)": 0.3154785592637093,
+      "Bal Acc (macro)": 0.687648615305704,
+      "Hamming Loss": 0.16185093895646097,
+      "Exact Match": 0.6781304287379276
+    },
+    "label_names": [
+      "Protein",
+      "Nucleic acid"
+    ]
+  },
+  "protein_nucleic/gnn": {
+    "setup": "protein_nucleic",
+    "arch": "gnn",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/gnn/model.pt",
+    "sha256": "b42cc3114d5e1d4181521d13b946e6eed24a2d4cb289b1597a3b89b1b5560798",
+    "size_bytes": 2441090,
+    "metrics": {
+      "F1 (Protein)": 0.39375258046818884,
+      "Precision (Protein)": 0.2864623801846273,
+      "Recall (Protein)": 0.6295357988446589,
+      "Bal Acc (Protein)": 0.6572496900122974,
+      "ROC AUC (Protein)": 0.718429046984567,
+      "PR AUC (Protein)": 0.3263323003162146,
+      "F1 (Nucleic acid)": 0.011978712024757988,
+      "Precision (Nucleic acid)": 0.0060389511668510806,
+      "Recall (Nucleic acid)": 0.729293594599045,
+      "Bal Acc (Nucleic acid)": 0.6802856999084552,
+      "ROC AUC (Nucleic acid)": 0.7480385798200643,
+      "PR AUC (Nucleic acid)": 0.012774960782138963,
+      "F1 (macro)": 0.2028656462464734,
+      "Precision (macro)": 0.1462506656757392,
+      "Recall (macro)": 0.679414696721852,
+      "ROC AUC (macro)": 0.7332338134023156,
+      "PR AUC (macro)": 0.16955363054917677,
+      "Bal Acc (macro)": 0.6687676949603762,
+      "Hamming Loss": 0.34636561558059764,
+      "Exact Match": 0.447469438747017
+    },
+    "label_names": [
+      "Protein",
+      "Nucleic acid"
+    ]
+  },
+  "protein_nucleic/gnn_mlp": {
+    "setup": "protein_nucleic",
+    "arch": "gnn_mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/gnn_mlp/model.pt",
+    "sha256": "120e09a48ccd4c618d595b068b6404ce6cedc069f8a7272bb83fc6f859e7aa1e",
+    "size_bytes": 10116994,
+    "embedder": {
+      "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/mlp/model.pt",
+      "sha256": "32dc1293b4cb2562364f397d006d24304f67f4667d8cab468895636c1460d808",
+      "provenance": "runs/<setup>/mlp/model.pt; verified bit-equivalent to the discarded GNNMLPArch.flat_mlp by scripts/spike_gnn_mlp_embedder.py (dna_rna max|diff|=1.19e-07 vs predictions.npz)"
+    },
+    "metrics": {
+      "F1 (Protein)": 0.45684721644973336,
+      "Precision (Protein)": 0.320491956879802,
+      "Recall (Protein)": 0.7951476296366534,
+      "Bal Acc (Protein)": 0.7250258706592353,
+      "ROC AUC (Protein)": 0.8036866430271045,
+      "PR AUC (Protein)": 0.4709666366863223,
+      "F1 (Nucleic acid)": 0.1778434807261976,
+      "Precision (Nucleic acid)": 0.1011063908173016,
+      "Recall (Nucleic acid)": 0.7378591833305327,
+      "Bal Acc (Nucleic acid)": 0.8587533858727913,
+      "ROC AUC (Nucleic acid)": 0.9590684873901627,
+      "PR AUC (Nucleic acid)": 0.2177272567438996,
+      "F1 (macro)": 0.3173453485879655,
+      "Precision (macro)": 0.2107991738485518,
+      "Recall (macro)": 0.766503406483593,
+      "ROC AUC (macro)": 0.8813775652086335,
+      "PR AUC (macro)": 0.34434694671511096,
+      "Bal Acc (macro)": 0.7918896282660133,
+      "Hamming Loss": 0.17118320337928175,
+      "Exact Match": 0.6617004772416911
+    },
+    "label_names": [
+      "Protein",
+      "Nucleic acid"
+    ]
+  },
+  "protein_nucleic/joint": {
+    "setup": "protein_nucleic",
+    "arch": "joint",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/joint/model.pt",
+    "sha256": "9b8568d19be98e3a14a6fc01cca5287b5a34a0df9edcb45cb791a52f3f804e7f",
+    "size_bytes": 13046268,
+    "metrics": {
+      "F1 (Protein)": 0.37862093975853955,
+      "Precision (Protein)": 0.24792330271458654,
+      "Recall (Protein)": 0.8007542829876458,
+      "Bal Acc (Protein)": 0.6517614088534763,
+      "ROC AUC (Protein)": 0.7274736942460127,
+      "PR AUC (Protein)": 0.3513033022612383,
+      "F1 (Nucleic acid)": 0.11279857122666358,
+      "Precision (Nucleic acid)": 0.06106875539107933,
+      "Recall (Nucleic acid)": 0.7376071248529659,
+      "Bal Acc (Nucleic acid)": 0.8512112659851376,
+      "ROC AUC (Nucleic acid)": 0.9440754367432316,
+      "PR AUC (Nucleic acid)": 0.14680155458112412,
+      "F1 (macro)": 0.24570975549260157,
+      "Precision (macro)": 0.15449602905283294,
+      "Recall (macro)": 0.7691807039203058,
+      "ROC AUC (macro)": 0.8357745654946221,
+      "PR AUC (macro)": 0.2490524284211812,
+      "Bal Acc (macro)": 0.751486337419307,
+      "Hamming Loss": 0.2412430112612408,
+      "Exact Match": 0.5474737893873818
+    },
+    "label_names": [
+      "Protein",
+      "Nucleic acid"
+    ]
+  },
+  "homo_hetero/mlp": {
+    "setup": "homo_hetero",
+    "arch": "mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/mlp/model.pt",
+    "sha256": "57c89762588de2d536ae65ef7cd9e84ead6e60e4c0e338ec4cf9ef891b2c65eb",
+    "size_bytes": 7662077,
+    "metrics": {
+      "F1 (Homo)": 0.46879791871263415,
+      "Precision (Homo)": 0.3392207237091094,
+      "Recall (Homo)": 0.7585541525698799,
+      "Bal Acc (Homo)": 0.7651687604848798,
+      "ROC AUC (Homo)": 0.8493872764979374,
+      "PR AUC (Homo)": 0.502029104809935,
+      "F1 (Hetero)": 0.359887939705,
+      "Precision (Hetero)": 0.2655590557702047,
+      "Recall (Hetero)": 0.5581463852235679,
+      "Bal Acc (Hetero)": 0.7470863448735463,
+      "ROC AUC (Hetero)": 0.8821760907356851,
+      "PR AUC (Hetero)": 0.29081297717418897,
+      "F1 (macro)": 0.4143429292088171,
+      "Precision (macro)": 0.3023898897396571,
+      "Recall (macro)": 0.6583502688967239,
+      "ROC AUC (macro)": 0.8657816836168113,
+      "PR AUC (macro)": 0.396421040992062,
+      "Bal Acc (macro)": 0.756127552679213,
+      "Hamming Loss": 0.1544988571032763,
+      "Exact Match": 0.7093533708793112
+    },
+    "label_names": [
+      "Homo",
+      "Hetero"
+    ]
+  },
+  "homo_hetero/gnn": {
+    "setup": "homo_hetero",
+    "arch": "gnn",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/gnn/model.pt",
+    "sha256": "949576aafbb88a8193a01f7fdf8c0c25d4a3a2f7cf2dd47114eac67db684da42",
+    "size_bytes": 2441026,
+    "metrics": {
+      "F1 (Homo)": 0.33059196791862844,
+      "Precision (Homo)": 0.21774954961071027,
+      "Recall (Homo)": 0.686190263952855,
+      "Bal Acc (Homo)": 0.6581760990641563,
+      "ROC AUC (Homo)": 0.718678711309596,
+      "PR AUC (Homo)": 0.2639397230672359,
+      "F1 (Hetero)": 0.15407559831108208,
+      "Precision (Hetero)": 0.08750132204724,
+      "Recall (Hetero)": 0.6442294190484701,
+      "Bal Acc (Hetero)": 0.6803712288921273,
+      "ROC AUC (Hetero)": 0.7482705772567104,
+      "PR AUC (Hetero)": 0.12372648567827327,
+      "F1 (macro)": 0.24233378311485526,
+      "Precision (macro)": 0.15262543582897514,
+      "Recall (macro)": 0.6652098415006625,
+      "ROC AUC (macro)": 0.7334746442831532,
+      "PR AUC (macro)": 0.19383310437275458,
+      "Bal Acc (macro)": 0.6692736639781418,
+      "Hamming Loss": 0.3244711600457819,
+      "Exact Match": 0.5408319979408985
+    },
+    "label_names": [
+      "Homo",
+      "Hetero"
+    ]
+  },
+  "homo_hetero/gnn_mlp": {
+    "setup": "homo_hetero",
+    "arch": "gnn_mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/gnn_mlp/model.pt",
+    "sha256": "a46ef33f9d6ff6c39438104fb5ebf857c029dbd42056acb8811d91fba0449a9b",
+    "size_bytes": 10116994,
+    "embedder": {
+      "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/mlp/model.pt",
+      "sha256": "57c89762588de2d536ae65ef7cd9e84ead6e60e4c0e338ec4cf9ef891b2c65eb",
+      "provenance": "runs/<setup>/mlp/model.pt; verified bit-equivalent to the discarded GNNMLPArch.flat_mlp by scripts/spike_gnn_mlp_embedder.py (dna_rna max|diff|=1.19e-07 vs predictions.npz)"
+    },
+    "metrics": {
+      "F1 (Homo)": 0.49787069054394323,
+      "Precision (Homo)": 0.3648101768000252,
+      "Recall (Homo)": 0.7837262511873162,
+      "Bal Acc (Homo)": 0.7864832581688856,
+      "ROC AUC (Homo)": 0.8689684651169538,
+      "PR AUC (Homo)": 0.5378772546872508,
+      "F1 (Hetero)": 0.31825634828379695,
+      "Precision (Hetero)": 0.20103201830624887,
+      "Recall (Hetero)": 0.7634110582233737,
+      "Bal Acc (Hetero)": 0.8188345605015999,
+      "ROC AUC (Hetero)": 0.901447511929792,
+      "PR AUC (Hetero)": 0.31471275824826317,
+      "F1 (macro)": 0.4080635194138701,
+      "Precision (macro)": 0.28292109755313705,
+      "Recall (macro)": 0.773568654705345,
+      "ROC AUC (macro)": 0.8852079885233729,
+      "PR AUC (macro)": 0.426295006467757,
+      "Bal Acc (macro)": 0.8026589093352428,
+      "Hamming Loss": 0.17082523004459696,
+      "Exact Match": 0.6825395218482425
+    },
+    "label_names": [
+      "Homo",
+      "Hetero"
+    ]
+  },
+  "homo_hetero/joint": {
+    "setup": "homo_hetero",
+    "arch": "joint",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/joint/model.pt",
+    "sha256": "5dc7d2ab9bb05c84b428660dc895a17b2204a495d152bde5387cc4de69b31daf",
+    "size_bytes": 13046204,
+    "metrics": {
+      "F1 (Homo)": 0.5253053495520059,
+      "Precision (Homo)": 0.4032016247878175,
+      "Recall (Homo)": 0.7534882702122533,
+      "Bal Acc (Homo)": 0.790617293343546,
+      "ROC AUC (Homo)": 0.8757640532896596,
+      "PR AUC (Homo)": 0.5516980733272805,
+      "F1 (Hetero)": 0.3174858876696026,
+      "Precision (Hetero)": 0.19847582789724239,
+      "Recall (Hetero)": 0.7929612446693847,
+      "Bal Acc (Hetero)": 0.830123349928001,
+      "ROC AUC (Hetero)": 0.9088246492322937,
+      "PR AUC (Hetero)": 0.31247881391084276,
+      "F1 (macro)": 0.42139561861080427,
+      "Precision (macro)": 0.30083872634252995,
+      "Recall (macro)": 0.773224757440819,
+      "ROC AUC (macro)": 0.8922943512609767,
+      "PR AUC (macro)": 0.4320884436190616,
+      "Bal Acc (macro)": 0.8103703216357735,
+      "Hamming Loss": 0.15893031260489873,
+      "Exact Match": 0.701374406572855
+    },
+    "label_names": [
+      "Homo",
+      "Hetero"
+    ]
+  },
+  "protein/mlp": {
+    "setup": "protein",
+    "arch": "mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/mlp/model.pt",
+    "sha256": "5a40f02a3704ae7212a10adb8ce3d2f8cc1c5fd185719f827871d2fd62b60302",
+    "size_bytes": 7661821,
+    "metrics": {
+      "F1 (Protein)": 0.5342695783227818,
+      "Precision (Protein)": 0.4530885130494505,
+      "Recall (Protein)": 0.6508915329803995,
+      "Bal Acc (Protein)": 0.7433780954526799,
+      "ROC AUC (Protein)": 0.8401245050993833,
+      "PR AUC (Protein)": 0.5494995686800702,
+      "F1 (macro)": 0.5342695783227818,
+      "Precision (macro)": 0.4530885130494505,
+      "Recall (macro)": 0.6508915329803995,
+      "ROC AUC (macro)": 0.8401245050993833,
+      "PR AUC (macro)": 0.5494995686800702,
+      "Bal Acc (macro)": 0.7433780954526799,
+      "Hamming Loss": 0.19610029784581284,
+      "Exact Match": 0.8038997021541872
+    },
+    "label_names": [
+      "Protein"
+    ]
+  },
+  "protein/gnn": {
+    "setup": "protein",
+    "arch": "gnn",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/gnn/model.pt",
+    "sha256": "10cece1be6c8269d6c8e486c2ba99eaea8cf9a805629546ea8c84fcd0eea27a2",
+    "size_bytes": 2440002,
+    "metrics": {
+      "F1 (Protein)": 0.40627245136468143,
+      "Precision (Protein)": 0.2821906297697181,
+      "Recall (Protein)": 0.7251100064075506,
+      "Bal Acc (Protein)": 0.6734018256304513,
+      "ROC AUC (Protein)": 0.7399942247082131,
+      "PR AUC (Protein)": 0.3603911941147501,
+      "F1 (macro)": 0.40627245136468143,
+      "Precision (macro)": 0.2821906297697181,
+      "Recall (macro)": 0.7251100064075506,
+      "ROC AUC (macro)": 0.7399942247082131,
+      "PR AUC (macro)": 0.3603911941147501,
+      "Bal Acc (macro)": 0.6734018256304513,
+      "Hamming Loss": 0.3607053249532451,
+      "Exact Match": 0.6392946750467549
+    },
+    "label_names": [
+      "Protein"
+    ]
+  },
+  "protein/gnn_mlp": {
+    "setup": "protein",
+    "arch": "gnn_mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/gnn_mlp/model.pt",
+    "sha256": "62c4cdf179dcadc94abf110ad89bbd32d56d11cec8a4b018cfc5a5e572a6852a",
+    "size_bytes": 10114882,
+    "embedder": {
+      "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/mlp/model.pt",
+      "sha256": "5a40f02a3704ae7212a10adb8ce3d2f8cc1c5fd185719f827871d2fd62b60302",
+      "provenance": "runs/<setup>/mlp/model.pt; verified bit-equivalent to the discarded GNNMLPArch.flat_mlp by scripts/spike_gnn_mlp_embedder.py (dna_rna max|diff|=1.19e-07 vs predictions.npz)"
+    },
+    "metrics": {
+      "F1 (Protein)": 0.5284098389732363,
+      "Precision (Protein)": 0.3898386717229438,
+      "Recall (Protein)": 0.8198218475683642,
+      "Bal Acc (Protein)": 0.77587884867344,
+      "ROC AUC (Protein)": 0.8552030492460376,
+      "PR AUC (Protein)": 0.5755862172847994,
+      "F1 (macro)": 0.5284098389732363,
+      "Precision (macro)": 0.3898386717229438,
+      "Recall (macro)": 0.8198218475683642,
+      "ROC AUC (macro)": 0.8552030492460376,
+      "PR AUC (macro)": 0.5755862172847994,
+      "Bal Acc (macro)": 0.77587884867344,
+      "Hamming Loss": 0.25287668970220745,
+      "Exact Match": 0.7471233102977926
+    },
+    "label_names": [
+      "Protein"
+    ]
+  },
+  "protein/joint": {
+    "setup": "protein",
+    "arch": "joint",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/joint/model.pt",
+    "sha256": "3c91986d3a3ad1d12c6c8da0f358aaec5e5c903ceb142f97310e0dffacf27b76",
+    "size_bytes": 13043900,
+    "metrics": {
+      "F1 (Protein)": 0.5396050747894775,
+      "Precision (Protein)": 0.4080426040476057,
+      "Recall (Protein)": 0.7963749772607445,
+      "Bal Acc (Protein)": 0.7775083949731874,
+      "ROC AUC (Protein)": 0.8571106920161254,
+      "PR AUC (Protein)": 0.578621058918741,
+      "F1 (macro)": 0.5396050747894775,
+      "Precision (macro)": 0.4080426040476057,
+      "Recall (macro)": 0.7963749772607445,
+      "ROC AUC (macro)": 0.8571106920161254,
+      "PR AUC (macro)": 0.578621058918741,
+      "Bal Acc (macro)": 0.7775083949731874,
+      "Hamming Loss": 0.23483757013229895,
+      "Exact Match": 0.765162429867701
+    },
+    "label_names": [
+      "Protein"
+    ]
+  },
+  "dna_rna/mlp": {
+    "setup": "dna_rna",
+    "arch": "mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/mlp/model.pt",
+    "sha256": "b5e8809f8c98e0ca79326a1b2e26d01ca207e0869f3a6b3064d7488cf88dbe83",
+    "size_bytes": 7662077,
+    "metrics": {
+      "F1 (DNA)": 0.6093852548676438,
+      "Precision (DNA)": 0.5129834254143646,
+      "Recall (DNA)": 0.7504040948275862,
+      "Bal Acc (DNA)": 0.8423302901514281,
+      "ROC AUC (DNA)": 0.9366471651388373,
+      "PR AUC (DNA)": 0.6585873318601705,
+      "F1 (RNA)": 0.40672239018317624,
+      "Precision (RNA)": 0.3390659747961453,
+      "Recall (RNA)": 0.508109309042435,
+      "Bal Acc (RNA)": 0.7273190598371508,
+      "ROC AUC (RNA)": 0.8674991440274755,
+      "PR AUC (RNA)": 0.36021191969157806,
+      "F1 (macro)": 0.5080538225254101,
+      "Precision (macro)": 0.42602470010525495,
+      "Recall (macro)": 0.6292567019350106,
+      "ROC AUC (macro)": 0.9020731545831564,
+      "PR AUC (macro)": 0.5093996257758743,
+      "Bal Acc (macro)": 0.7848246749942895,
+      "Hamming Loss": 0.07860207344690633,
+      "Exact Match": 0.8608332479828844
+    },
+    "label_names": [
+      "DNA",
+      "RNA"
+    ]
+  },
+  "dna_rna/gnn": {
+    "setup": "dna_rna",
+    "arch": "gnn",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/gnn/model.pt",
+    "sha256": "5f751c83bd122c4e38341cea95e117c52e68e482d75f1a4a94c3bcb801b6986c",
+    "size_bytes": 2441026,
+    "metrics": {
+      "F1 (DNA)": 0.24288510427681162,
+      "Precision (DNA)": 0.14593527805563816,
+      "Recall (DNA)": 0.7235924932975871,
+      "Bal Acc (DNA)": 0.6743214680032693,
+      "ROC AUC (DNA)": 0.732695778646097,
+      "PR AUC (DNA)": 0.19248461006175255,
+      "F1 (RNA)": 0.1390830213990523,
+      "Precision (RNA)": 0.07747378570567676,
+      "Recall (RNA)": 0.6792054099746407,
+      "Bal Acc (RNA)": 0.6196089131683233,
+      "ROC AUC (RNA)": 0.671682353980681,
+      "PR AUC (RNA)": 0.0960607176784203,
+      "F1 (macro)": 0.19098406283793196,
+      "Precision (macro)": 0.11170453188065746,
+      "Recall (macro)": 0.7013989516361139,
+      "ROC AUC (macro)": 0.702189066313389,
+      "PR AUC (macro)": 0.14427266387008642,
+      "Bal Acc (macro)": 0.6469651905857963,
+      "Hamming Loss": 0.40038598251084895,
+      "Exact Match": 0.5089735482042
+    },
+    "label_names": [
+      "DNA",
+      "RNA"
+    ]
+  },
+  "dna_rna/gnn_mlp": {
+    "setup": "dna_rna",
+    "arch": "gnn_mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/gnn_mlp/model.pt",
+    "sha256": "9f6a7108de72c07cbdb5bebeae74bc7f17c56e7591933923c32a463213b3459f",
+    "size_bytes": 10116930,
+    "embedder": {
+      "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/mlp/model.pt",
+      "sha256": "b5e8809f8c98e0ca79326a1b2e26d01ca207e0869f3a6b3064d7488cf88dbe83",
+      "provenance": "runs/<setup>/mlp/model.pt; verified bit-equivalent to the discarded GNNMLPArch.flat_mlp by scripts/spike_gnn_mlp_embedder.py (dna_rna max|diff|=1.19e-07 vs predictions.npz)"
+    },
+    "metrics": {
+      "F1 (DNA)": 0.6285681266612736,
+      "Precision (DNA)": 0.550394656952034,
+      "Recall (DNA)": 0.7326239224137931,
+      "Bal Acc (DNA)": 0.8386981934782735,
+      "ROC AUC (DNA)": 0.9402059562405889,
+      "PR AUC (DNA)": 0.6772631850785051,
+      "F1 (RNA)": 0.42138067806213997,
+      "Precision (RNA)": 0.3664586070959264,
+      "Recall (RNA)": 0.49566762941568543,
+      "Bal Acc (RNA)": 0.7247025476157734,
+      "ROC AUC (RNA)": 0.8722685613222277,
+      "PR AUC (RNA)": 0.37656873259351775,
+      "F1 (macro)": 0.5249744023617068,
+      "Precision (macro)": 0.45842663202398026,
+      "Recall (macro)": 0.6141457759147393,
+      "ROC AUC (macro)": 0.9062372587814083,
+      "PR AUC (macro)": 0.5269159588360115,
+      "Bal Acc (macro)": 0.7817003705470233,
+      "Hamming Loss": 0.07143832576559353,
+      "Exact Match": 0.8705631991624276
+    },
+    "label_names": [
+      "DNA",
+      "RNA"
+    ]
+  },
+  "dna_rna/joint": {
+    "setup": "dna_rna",
+    "arch": "joint",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/joint/model.pt",
+    "sha256": "8171a26cfce31b0891f5eec787cf547ebbf096cfc77a6348295d73b27ce68d7d",
+    "size_bytes": 13046204,
+    "metrics": {
+      "F1 (DNA)": 0.6208367514356029,
+      "Precision (DNA)": 0.5226038118037013,
+      "Recall (DNA)": 0.7645474137931034,
+      "Bal Acc (DNA)": 0.8500483218700132,
+      "ROC AUC (DNA)": 0.9455396364306192,
+      "PR AUC (DNA)": 0.6762811463559502,
+      "F1 (RNA)": 0.4173956931359354,
+      "Precision (RNA)": 0.3358602951130364,
+      "Recall (RNA)": 0.5512108420351033,
+      "Bal Acc (RNA)": 0.7461830729870378,
+      "ROC AUC (RNA)": 0.8820621424060926,
+      "PR AUC (RNA)": 0.377467883804478,
+      "F1 (macro)": 0.5191162222857691,
+      "Precision (macro)": 0.42923205345836885,
+      "Recall (macro)": 0.6578791279141034,
+      "ROC AUC (macro)": 0.9138008894183559,
+      "PR AUC (macro)": 0.5268745150802141,
+      "Bal Acc (macro)": 0.7981156974285255,
+      "Hamming Loss": 0.07885812479373641,
+      "Exact Match": 0.8560763829617744
+    },
+    "label_names": [
+      "DNA",
+      "RNA"
+    ]
+  },
+  "nucleic/mlp": {
+    "setup": "nucleic",
+    "arch": "mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/mlp/model.pt",
+    "sha256": "638efdee8d912f3238a11b2708b65bae451049e0c62bdd828b92bc93f7613515",
+    "size_bytes": 7661821,
+    "metrics": {
+      "F1 (Nucleic acid)": 0.5887805060358037,
+      "Precision (Nucleic acid)": 0.4913911416094822,
+      "Recall (Nucleic acid)": 0.7343152792020136,
+      "Bal Acc (Nucleic acid)": 0.8143162738788695,
+      "ROC AUC (Nucleic acid)": 0.9050369145904551,
+      "PR AUC (Nucleic acid)": 0.6435781151592307,
+      "F1 (macro)": 0.5887805060358037,
+      "Precision (macro)": 0.4913911416094822,
+      "Recall (macro)": 0.7343152792020136,
+      "ROC AUC (macro)": 0.9050369145904551,
+      "PR AUC (macro)": 0.6435781151592307,
+      "Bal Acc (macro)": 0.8143162738788695,
+      "Hamming Loss": 0.1252147986298408,
+      "Exact Match": 0.8747852013701592
+    },
+    "label_names": [
+      "Nucleic acid"
+    ]
+  },
+  "nucleic/gnn": {
+    "setup": "nucleic",
+    "arch": "gnn",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/gnn/model.pt",
+    "sha256": "99672e1a2e113957ce22d88df1df26edfeecb7fb7ce45e66f690d10bf2521560",
+    "size_bytes": 2440002,
+    "metrics": {
+      "F1 (Nucleic acid)": 0.32044150110375275,
+      "Precision (Nucleic acid)": 0.21137548417159333,
+      "Recall (Nucleic acid)": 0.6620450606585788,
+      "Bal Acc (Nucleic acid)": 0.6633527801094778,
+      "ROC AUC (Nucleic acid)": 0.7207067729270602,
+      "PR AUC (Nucleic acid)": 0.2626807302043125,
+      "F1 (macro)": 0.32044150110375275,
+      "Precision (macro)": 0.21137548417159333,
+      "Recall (macro)": 0.6620450606585788,
+      "ROC AUC (macro)": 0.7207067729270602,
+      "PR AUC (macro)": 0.2626807302043125,
+      "Bal Acc (macro)": 0.6633527801094778,
+      "Hamming Loss": 0.33565213598796256,
+      "Exact Match": 0.6643478640120374
+    },
+    "label_names": [
+      "Nucleic acid"
+    ]
+  },
+  "nucleic/gnn_mlp": {
+    "setup": "nucleic",
+    "arch": "gnn_mlp",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/gnn_mlp/model.pt",
+    "sha256": "3dc3104238a41a59eadd8563da5177bdcc321959cfb8d382c7023939f8175e29",
+    "size_bytes": 10114882,
+    "embedder": {
+      "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/mlp/model.pt",
+      "sha256": "638efdee8d912f3238a11b2708b65bae451049e0c62bdd828b92bc93f7613515",
+      "provenance": "runs/<setup>/mlp/model.pt; verified bit-equivalent to the discarded GNNMLPArch.flat_mlp by scripts/spike_gnn_mlp_embedder.py (dna_rna max|diff|=1.19e-07 vs predictions.npz)"
+    },
+    "metrics": {
+      "F1 (Nucleic acid)": 0.5861255636489767,
+      "Precision (Nucleic acid)": 0.4667182234988676,
+      "Recall (Nucleic acid)": 0.7876386687797148,
+      "Bal Acc (Nucleic acid)": 0.8312496613024647,
+      "ROC AUC (Nucleic acid)": 0.9129189045496203,
+      "PR AUC (Nucleic acid)": 0.6596069636958518,
+      "F1 (macro)": 0.5861255636489767,
+      "Precision (macro)": 0.4667182234988676,
+      "Recall (macro)": 0.7876386687797148,
+      "ROC AUC (macro)": 0.9129189045496203,
+      "PR AUC (macro)": 0.6596069636958518,
+      "Bal Acc (macro)": 0.8312496613024647,
+      "Hamming Loss": 0.1357868742389585,
+      "Exact Match": 0.8642131257610415
+    },
+    "label_names": [
+      "Nucleic acid"
+    ]
+  },
+  "nucleic/joint": {
+    "setup": "nucleic",
+    "arch": "joint",
+    "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/joint/model.pt",
+    "sha256": "5b894172d37aa3f2bc3ced82812a3ec9186dc12ec42ffa657ea90ce247908c47",
+    "size_bytes": 13043900,
+    "metrics": {
+      "F1 (Nucleic acid)": 0.6191608629182945,
+      "Precision (Nucleic acid)": 0.5685983932610561,
+      "Recall (Nucleic acid)": 0.6795935489885336,
+      "Bal Acc (Nucleic acid)": 0.8039491608785252,
+      "ROC AUC (Nucleic acid)": 0.9157274697650271,
+      "PR AUC (Nucleic acid)": 0.6578689567396406,
+      "F1 (macro)": 0.6191608629182945,
+      "Precision (macro)": 0.5685983932610561,
+      "Recall (macro)": 0.6795935489885336,
+      "ROC AUC (macro)": 0.9157274697650271,
+      "PR AUC (macro)": 0.6578689567396406,
+      "Bal Acc (macro)": 0.8039491608785252,
+      "Hamming Loss": 0.10205637681654206,
+      "Exact Match": 0.897943623183458
+    },
+    "label_names": [
+      "Nucleic acid"
+    ]
+  }
+}

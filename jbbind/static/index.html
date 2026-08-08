@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JBBind — protein binding-site prediction</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/vendor/3Dmol-min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">JB<span>Bind</span></div>
+  <nav class="tabs" id="nav">
+    <button data-page="predict" aria-current="page">Predict</button>
+    <button data-page="metrics">Metrics</button>
+    <button data-page="settings">Settings</button>
+  </nav>
+  <div class="spacer"></div>
+  <div class="device" id="device-badge">…</div>
+</header>
+
+<!-- ==================================================== PREDICT ========= -->
+<main class="page active" id="page-predict">
+  <div class="predict-layout">
+
+    <!-- left rail -->
+    <section class="panel">
+      <h2>Input</h2>
+      <div class="panel-body">
+        <div class="field">
+          <label for="pdbid">PDB ID</label>
+          <div class="row">
+            <input type="text" id="pdbid" placeholder="e.g. 1ycr" maxlength="4" spellcheck="false">
+            <button class="secondary" id="load-pdb" style="flex:0 0 auto">Load</button>
+          </div>
+          <div class="hint">Fetched from RCSB as the asymmetric unit.</div>
+        </div>
+
+        <div class="field">
+          <label for="upload">…or upload a structure</label>
+          <input type="file" id="upload" accept=".pdb,.cif,.ent,.gz,.mmcif">
+          <div class="hint">PDB or mmCIF, optionally gzipped.</div>
+        </div>
+
+        <div class="field" id="chain-field" hidden>
+          <label for="chain">Chain</label>
+          <select id="chain"></select>
+          <div class="hint" id="chain-hint"></div>
+        </div>
+
+        <button class="primary" id="run" disabled>Predict</button>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+        <div class="field">
+          <label for="setup">Prediction task</label>
+          <select id="setup"></select>
+          <div class="hint" id="setup-hint"></div>
+        </div>
+
+        <div class="field">
+          <label>Label to display</label>
+          <div class="radio-list" id="labels"></div>
+        </div>
+
+        <div class="field">
+          <label for="threshold">Decision threshold — <span class="mono" id="thr-value">0.50</span></label>
+          <input type="range" id="threshold" min="0" max="1" step="0.01" value="0.5">
+          <div class="hint" id="thr-hint"></div>
+        </div>
+
+        <div class="field">
+          <label for="colormode">Colouring</label>
+          <select id="colormode">
+            <option value="continuous">Continuous score</option>
+            <option value="threshold">Above / below threshold</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400">
+            <input type="checkbox" id="show-surface" style="width:auto"> Show molecular surface
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:6px">
+            <input type="checkbox" id="show-sidechains" checked style="width:auto"> Sticks above threshold
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- viewer -->
+    <section class="panel">
+      <h2 id="viewer-title">Structure</h2>
+      <div class="status" id="status" hidden><span class="spinner"></span><span id="status-text"></span></div>
+      <div id="viewer"></div>
+      <div class="legend">
+        <span class="mono">0</span>
+        <div class="ramp" id="ramp"><div class="tick" id="ramp-tick" style="left:50%"></div></div>
+        <span class="mono">1</span>
+        <span class="chip"><i></i> not predicted</span>
+      </div>
+    </section>
+
+    <!-- right panel -->
+    <section class="panel">
+      <div class="subtabs" id="subtabs">
+        <button data-sub="sequence" aria-selected="true">Sequence</button>
+        <button data-sub="table" aria-selected="false">Residues</button>
+        <button data-sub="downloads" aria-selected="false">Download</button>
+      </div>
+
+      <div class="subpanel active" data-sub="sequence">
+        <div id="warnings" style="padding:12px 12px 0"></div>
+        <div class="seq-meta" id="seq-meta">No prediction yet.</div>
+        <canvas id="seqtrack" height="86"></canvas>
+        <div style="padding:10px 12px;font-size:12px;color:var(--text-muted)" id="seq-hover">
+          Hover the track to inspect a residue; click to focus it in the viewer.
+        </div>
+      </div>
+
+      <div class="subpanel" data-sub="table">
+        <table class="residues" id="restable">
+          <thead><tr>
+            <th data-sort="i">#</th>
+            <th data-sort="auth">auth</th>
+            <th data-sort="aa">aa</th>
+            <th data-sort="sas">SASA</th>
+            <th data-sort="p">score ▼</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="subpanel" data-sub="downloads">
+        <div class="downloads" id="downloads">
+          <p class="muted" style="margin:0;font-size:12.5px">Run a prediction first.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- ==================================================== METRICS ========= -->
+<main class="page" id="page-metrics">
+  <div class="metrics-page">
+    <div class="metrics-controls">
+      <div class="field">
+        <label for="m-setup">Prediction task</label>
+        <select id="m-setup"></select>
+      </div>
+      <div class="field" style="flex:1">
+        <div class="hint" id="m-setup-desc"></div>
+      </div>
+    </div>
+    <div id="metrics-body"><p class="muted">Loading metrics…</p></div>
+  </div>
+</main>
+
+<!-- =================================================== SETTINGS ========= -->
+<main class="page" id="page-settings">
+  <div class="settings-page">
+    <div id="settings-body"><p class="muted">Loading settings…</p></div>
+  </div>
+</main>
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

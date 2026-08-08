@@ -1,0 +1,50 @@
+JBBind bundles and depends on the following third-party components.
+
+--------------------------------------------------------------------------------
+Voronota / voronota-js  —  https://github.com/kliment-olechnovic/voronota
+MIT License. Copyright (c) Kliment Olechnovic.
+
+Version 1.29.4781 is compiled into the container and performs the Voronoi
+tessellation and all per-atom structural features. JBBind ships a modified
+derivative of the repository's `extract-and-describe-receptor-protein` script as
+`tools/describe-receptor-chain`; the unmodified original is preserved at
+`tools/reference/` and `make diff-tool` prints the delta.
+
+If you publish results produced with JBBind, cite Voronota:
+  Olechnovic K, Venclovas C. "Voronota: A fast and reliable tool for computing
+  the vertices of the Voronoi diagram of atomic balls." J Comput Chem, 2014.
+  Olechnovic K, Venclovas C. "VoroMQA: Assessment of protein structure quality
+  using interatomic contact areas." Proteins, 2017.
+
+--------------------------------------------------------------------------------
+ESM-2  —  https://github.com/facebookresearch/esm
+MIT License. Copyright (c) Meta Platforms, Inc. and affiliates.
+
+The `esm2_t33_650M_UR50D` checkpoint is baked into the container and produces the
+per-residue sequence embeddings.
+
+  Lin Z, Akin H, Rao R, et al. "Evolutionary-scale prediction of atomic-level
+  protein structure with a language model." Science, 2023.
+
+--------------------------------------------------------------------------------
+3Dmol.js  —  https://3dmol.csb.pitt.edu/
+BSD-3-Clause. Copyright (c) University of Pittsburgh.
+
+Vendored at `jbbind/static/vendor/3Dmol-min.js` so the container renders
+structures with no external network access.
+
+  Rego N, Koes D. "3Dmol.js: molecular visualization with WebGL."
+  Bioinformatics, 2015.
+
+--------------------------------------------------------------------------------
+gemmi  —  https://gemmi.readthedocs.io/    MPL-2.0
+PyTorch, PyTorch Geometric, FastAPI, pandas, NumPy, scikit-learn — see
+requirements.txt; each retains its own licence.
+
+--------------------------------------------------------------------------------
+Training data
+
+The models were trained on structures and interface annotations derived from
+PPI3D (https://bioinformatics.lt/ppi3d/) and SAbDab. The trained weights in
+`models/` are derivative of that data; check the respective terms before
+redistributing them.

@@ -1,0 +1,28 @@
+# Pinned to the versions the parity tests were verified against.
+#
+# The research environment runs Python 3.13 / torch 2.10 / pandas 3.0. The container
+# pins the same majors so that tests/test_parity_tensors.py -- which asserts BIT-IDENTICAL
+# tensors against the original training code -- keeps passing inside the image. If those
+# assertions start failing at ~1e-7 after a bump, the fix is to pin back, not to relax the
+# assertion: the whole point is that the served model sees exactly what it was trained on.
+#
+# torch-geometric 2.7 is pure Python and uses torch's native scatter, so torch-scatter and
+# torch-sparse are NOT needed. Do not add them.
+
+torch==2.10.0
+torch-geometric==2.7.0
+fair-esm==2.0.0
+
+numpy==2.4.3
+pandas==3.0.1
+scikit-learn==1.8.0
+pyarrow==25.0.0
+gemmi==0.7.5
+
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+python-multipart==0.0.32
+httpx==0.28.1
+filelock==3.25.2
+
+pytest==9.1.1

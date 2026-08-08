@@ -1,0 +1,26 @@
+{
+  "12as_A": {
+    "n_residues": 297,
+    "n_edges": 1420,
+    "esm_len": 330,
+    "n_dropped_by_truncation": 0,
+    "min_resseq": 4,
+    "max_resseq": 330
+  },
+  "6oax_E": {
+    "n_residues": 537,
+    "n_edges": 2616,
+    "esm_len": 867,
+    "n_dropped_by_truncation": 0,
+    "min_resseq": 161,
+    "max_resseq": 857
+  },
+  "3cqz_A": {
+    "n_residues": 891,
+    "n_edges": 4152,
+    "esm_len": 1022,
+    "n_dropped_by_truncation": 369,
+    "min_resseq": 6,
+    "max_resseq": 1020
+  }
+}

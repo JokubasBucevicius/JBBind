@@ -1,0 +1,147 @@
+# JBBind — Apptainer definition.
+#
+# This is the primary runnable artifact on an HPC box: there is no docker daemon on the
+# cluster this was built for, but Apptainer pulls Docker Hub layers directly, so this
+# builds natively with no registry involved.
+#
+#   apptainer build --fakeroot jbbind.sif apptainer.def
+#   apptainer run --bind /scratch/jbbind:/data --cleanenv jbbind.sif
+#   apptainer exec --bind /scratch/jbbind:/data --cleanenv jbbind.sif \
+#       jbbind batch targets.csv --out results/
+#   apptainer run --nv --bind /scratch/jbbind:/data --cleanenv jbbind.sif   # GPU
+#
+# Each %post block mirrors the corresponding Dockerfile stage; keep them in step.
+#
+# BUILD PRIVILEGES: /etc/subuid on the target cluster has no entry for the invoking user,
+# but unprivileged user namespaces are enabled and /usr/bin/fakeroot exists, so
+# --fakeroot falls back to single-user mapping. If apt-get in %post still fails, either
+# build with --sandbox and convert, or ask an admin for
+#   usermod --add-subuids 100000-165535 --add-subgids 100000-165535 <user>
+
+Bootstrap: docker
+From: python:3.13-slim
+
+# Apptainer runs every %files section before every %post section, so the app code below
+# is already in place when %post runs. Single stage on purpose: a multi-stage def would
+# need a registry or a second build, and the build-tool purge at the end of %post
+# recovers most of what a builder stage would have saved.
+# No trailing slashes: Apptainer's %files copies `src dst` like `cp -r`, and a trailing
+# slash on the destination nests the directory inside itself (/app/tools/tools/...).
+%files
+    requirements.txt /opt/build/requirements.txt
+    tools /app/tools
+    models /app/models
+    jbbind /app/jbbind
+    tests /app/tests
+    pytest.ini /app/pytest.ini
+
+%post
+    set -eux
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        bash coreutils gawk sed grep ca-certificates curl tini \
+        build-essential cmake
+    rm -rf /var/lib/apt/lists/*
+
+    # --- voronota, from source (mirrors the Dockerfile's voronota stage)
+    VORONOTA_VERSION=1.29.4781
+    cd /opt/build
+    curl -fsSL -o voronota.tar.gz \
+      "https://github.com/kliment-olechnovic/voronota/releases/download/v${VORONOTA_VERSION}/voronota_${VORONOTA_VERSION}.tar.gz"
+    tar xf voronota.tar.gz
+    cd "voronota_${VORONOTA_VERSION}/expansion_js"
+    cmake .
+    make -j"$(nproc)"
+    install -m 0755 ./voronota-js /usr/local/bin/voronota-js
+
+    # --- python deps (mirrors the Dockerfile's pip layer)
+    pip install --no-cache-dir \
+        --index-url "${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}" \
+        --extra-index-url https://pypi.org/simple \
+        -r /opt/build/requirements.txt
+
+    # --- ESM-2 650M, baked in (mirrors the Dockerfile's weights layer)
+    export TORCH_HOME=/opt/torch
+    mkdir -p "$TORCH_HOME/hub/checkpoints"
+    curl -fsSL -o "$TORCH_HOME/hub/checkpoints/esm2_t33_650M_UR50D.pt" \
+        https://dl.fbaipublicfiles.com/fair-esm/models/esm2_t33_650M_UR50D.pt
+    curl -fsSL -o "$TORCH_HOME/hub/checkpoints/esm2_t33_650M_UR50D-contact-regression.pt" \
+        https://dl.fbaipublicfiles.com/fair-esm/regression/esm2_t33_650M_UR50D-contact-regression.pt
+    python -c "import esm; esm.pretrained.esm2_t33_650M_UR50D()" >/dev/null
+
+    # Build tools are not needed at runtime and are ~400 MB of SIF.
+    apt-get purge -y build-essential cmake
+    apt-get autoremove -y
+    rm -rf /opt/build /var/lib/apt/lists/*
+
+%files
+    tools/    /app/tools/
+    models/   /app/models/
+    jbbind/   /app/jbbind/
+    tests/    /app/tests/
+    pytest.ini /app/pytest.ini
+
+%post
+    set -eux
+    # Fail loudly with a listing rather than a bare chmod error: a %files path mistake
+    # otherwise surfaces as "No such file or directory" with no clue what landed where.
+    if [ ! -f /app/tools/describe-receptor-chain ]; then
+        echo "ERROR: tool script missing. /app contains:" >&2
+        find /app -maxdepth 3 >&2
+        exit 1
+    fi
+    chmod +x /app/tools/describe-receptor-chain
+    mkdir -p /data/cache
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export PYTHONPATH=/app
+    # $HOME is auto-mounted by Apptainer, and a stale ~/.cache/torch would shadow the
+    # baked weights. Pin TORCH_HOME explicitly and run with --cleanenv.
+    export TORCH_HOME=/opt/torch
+    export JBBIND_MODELS=/app/models
+    export JBBIND_CACHE=${JBBIND_CACHE:-/data/cache}
+    # The image is read-only. The voronota wrappers call `mktemp -d`, so TMPDIR must
+    # point somewhere writable — bind-mount it if /tmp inside the container is not.
+    export TMPDIR=${JBBIND_TMP:-/tmp}
+    export OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
+    export MKL_NUM_THREADS=${MKL_NUM_THREADS:-4}
+
+%runscript
+    cd /app
+    if [ "$#" -eq 0 ]; then
+        exec python -m uvicorn jbbind.main:app --host 0.0.0.0 --port 8000 --workers 1
+    fi
+    exec python -m jbbind.cli "$@"
+
+%apprun jbbind
+    cd /app && exec python -m jbbind.cli "$@"
+
+%test
+    set -eux
+    command -v voronota-js
+    python -c "import torch, esm, gemmi, torch_geometric, fastapi; print('imports ok')"
+    cd /app && python -m pytest tests/ -q -x
+
+%labels
+    Name        JBBind
+    Description Per-residue protein/nucleic binding-site prediction
+    Voronota    1.29.4781
+    ESM         esm2_t33_650M_UR50D
+
+%help
+    JBBind predicts, for every surface residue of a protein chain, whether it binds a
+    protein or a nucleic acid.
+
+      apptainer run  --bind /scratch/jbbind:/data --cleanenv jbbind.sif
+          start the web app on port 8000
+
+      apptainer exec --bind /scratch/jbbind:/data --cleanenv jbbind.sif \
+          jbbind predict 1ycr --chain A
+          predict one chain
+
+      apptainer exec --bind /scratch/jbbind:/data --cleanenv jbbind.sif \
+          jbbind batch targets.csv --out results/
+          predict many chains, resumably
+
+    Add --nv to use a GPU (only worth it for batch runs; ESM-2 is the bottleneck).
