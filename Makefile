@@ -81,6 +81,14 @@ docker-cuda: ## build the CUDA docker image
 sif: ## build the Apptainer image (works without a docker daemon)
 	apptainer build --fakeroot --force $(SIF) apptainer.def
 
+.PHONY: sandbox
+sandbox: ## build an Apptainer sandbox directory (use when mksquashfs segfaults)
+	apptainer build --fakeroot --force --sandbox jbbind-sandbox apptainer.def
+
+.PHONY: sandbox-to-sif
+sandbox-to-sif: ## convert an existing sandbox into a .sif
+	apptainer build --fakeroot --force $(SIF) jbbind-sandbox/
+
 .PHONY: sif-run
 sif-run: ## run the web app from the Apptainer image
 	mkdir -p .apptainer-data
@@ -92,5 +100,5 @@ sif-test: ## run the test suite inside the Apptainer image
 
 .PHONY: clean
 clean: ## remove build and cache artefacts
-	rm -rf .apptainer-data $(SIF) .pytest_cache
+	rm -rf .apptainer-data $(SIF) jbbind-sandbox .pytest_cache
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

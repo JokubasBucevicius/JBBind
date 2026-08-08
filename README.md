@@ -62,6 +62,12 @@ apptainer run --cleanenv --bind /scratch/jbbind:/data jbbind.sif       # web app
 apptainer exec --cleanenv --bind /scratch/jbbind:/data jbbind.sif \
     jbbind predict 1ycr --chain A
 
+# If `make sif` dies at "creating squashfs" with exit status 139, that is mksquashfs
+# segfaulting on the host, not a problem with the definition file. Build a sandbox
+# instead — it runs identically, just as a directory rather than a single file:
+make sandbox
+apptainer run --cleanenv --bind /scratch/jbbind:/data jbbind-sandbox/
+
 # Docker
 make docker && docker run -p 8000:8000 -v jbbind-data:/data jbbind:cpu
 ```

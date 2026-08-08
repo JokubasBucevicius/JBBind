@@ -40,3 +40,6 @@ results/
 # Use git-lfs for models/ and tests/data/ if this repo gets pushed anywhere shared.
 !models/**/*.pt
 !tests/data/**
+
+# Apptainer sandbox build
+jbbind-sandbox/
