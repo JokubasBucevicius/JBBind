@@ -140,6 +140,7 @@ see. Every claim below is a command you can re-run.
 | **Tier 1** — tensors bit-identical to the original training code | **pass**, `torch.equal` on 3 golden chains | `make test` |
 | **Tier 2** — model outputs match the original classes, 5 setups × 4 archs | **20/20 pass**, atol 1e-6 | `make test` |
 | **Tier 3a** — forked voronota script reproduces the training features | **40/40 chains byte-exact** (only `bsite_area` differs, by design) | `make verify-tool` |
+| **Tier 3b** — does serving from RCSB change the answer vs the training files? | **median Pearson r 1.0000, median max\|Δ\| 0.0000** over 39 chains (p90 max\|Δ\| 0.071) | `make verify-provenance` |
 | **Tier 3c** — SEQRES renumbering matches the training numbering | **190/190 = 100%** of sound chains | `make verify-renumbering` |
 | **P0.5** — the `gnn_mlp` embedder recovery (below) | max abs diff **1.19e-07** vs the recorded `predictions.npz` | `scripts/spike_gnn_mlp_embedder.py` |
 
@@ -259,11 +260,14 @@ verifiable rather than a fork that quietly drifts.
 
 ## Known limitations
 
-- **Provenance shift.** Training features came from PPI3D interface-coordinate files;
-  JBBind serves the RCSB asymmetric unit. Same chain, different file. Combined with
-  per-graph min-max normalisation, this shifts the inputs slightly.
-  `make verify-provenance` measures it; `rcsb_assembly` in Settings switches to biological
-  assembly 1 if you want to test the alternative.
+- **Provenance shift — measured, and smaller than expected.** Training features came from
+  PPI3D interface-coordinate files; JBBind serves the RCSB asymmetric unit. Combined with
+  per-graph min-max normalisation, that could have shifted the inputs meaningfully. Over
+  39 chains it does not: median Pearson r between the two provenances is 1.0000 and the
+  median max\|Δscore\| is 0.0000 — for most chains the coordinates are simply identical.
+  There is a tail, though: the 10th percentile of r is 0.92 and the 90th percentile of
+  max\|Δ\| is 0.071, so a minority of chains do move. `make verify-provenance` reproduces
+  the distribution; `rcsb_assembly` in Settings switches to biological assembly 1.
 - **`protein_nucleic` is weak** (macro PR-AUC 0.344 for `gnn_mlp`) — nucleic-acid residues
   are ~0.3% of that task's training data. Prefer `protein` and `nucleic` separately.
 - **Scores are uncalibrated** (see above). Per-setup isotonic calibration on the validation

@@ -1,0 +1,396 @@
+[
+  {
+    "chain": "2f8f_B",
+    "status": "ok",
+    "n_shared": 189,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "4iyj_A",
+    "status": "ok",
+    "n_shared": 196,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9977,
+    "max_abs_diff": 0.0417,
+    "mean_abs_diff": 0.0046,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "5mse_A",
+    "status": "ok",
+    "n_shared": 212,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9556,
+    "max_abs_diff": 0.0685,
+    "mean_abs_diff": 0.011,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "5f9z_A",
+    "status": "ok",
+    "n_shared": 448,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "7rf1_o",
+    "status": "ok",
+    "n_shared": 260,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.6536,
+    "max_abs_diff": 0.1568,
+    "mean_abs_diff": 0.0341,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "7k5k_C",
+    "status": "ok",
+    "n_shared": 492,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "7zdi_S",
+    "status": "ok",
+    "n_shared": 94,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3lnn_B",
+    "status": "ok",
+    "n_shared": 333,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0001,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "6et9_A",
+    "status": "ok",
+    "n_shared": 319,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "8c4l_B",
+    "status": "ok",
+    "n_shared": 226,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3ujp_C",
+    "status": "ok",
+    "n_shared": 249,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "6gws_A",
+    "status": "ok",
+    "n_shared": 245,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3dby_G",
+    "status": "ok",
+    "n_shared": 225,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0026,
+    "mean_abs_diff": 0.0001,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3uc7_B",
+    "status": "ok",
+    "n_shared": 22,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9527,
+    "max_abs_diff": 0.0084,
+    "mean_abs_diff": 0.0031,
+    "spearman_sas_area": 0.9673
+  },
+  {
+    "chain": "6wlz_A",
+    "status": "ok",
+    "n_shared": 556,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "4zyj_A",
+    "status": "ok",
+    "n_shared": 346,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "6gcn_B",
+    "status": "ok",
+    "n_shared": 407,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0021,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "8k4w_B",
+    "status": "ok",
+    "n_shared": 22,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.7816,
+    "max_abs_diff": 0.0199,
+    "mean_abs_diff": 0.0073,
+    "spearman_sas_area": 0.9627
+  },
+  {
+    "chain": "1pug_A",
+    "status": "ok",
+    "n_shared": 89,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "2b5a_B",
+    "status": "ok",
+    "n_shared": 71,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3d55_D",
+    "status": "ok",
+    "n_shared": 82,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3hj9_A",
+    "status": "ok",
+    "n_shared": 196,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9936,
+    "max_abs_diff": 0.0567,
+    "mean_abs_diff": 0.0081,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3kj0_B",
+    "status": "ok",
+    "n_shared": 24,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.7739,
+    "max_abs_diff": 0.1984,
+    "mean_abs_diff": 0.1367,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "1kbi_B",
+    "status": "ok",
+    "n_shared": 367,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0003,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "1clq_A",
+    "status": "ok",
+    "n_shared": 861,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "7y8s_A",
+    "status": "ok",
+    "n_shared": 263,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "2xr1_A",
+    "status": "ok",
+    "n_shared": 557,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "6ru8_B",
+    "status": "too little overlap"
+  },
+  {
+    "chain": "8hye_B",
+    "status": "ok",
+    "n_shared": 323,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0002,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "8cxa_C",
+    "status": "ok",
+    "n_shared": 225,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "8afg_B",
+    "status": "ok",
+    "n_shared": 382,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "4fw1_A",
+    "status": "ok",
+    "n_shared": 189,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "4fp9_D",
+    "status": "ok",
+    "n_shared": 302,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9831,
+    "max_abs_diff": 0.0811,
+    "mean_abs_diff": 0.0051,
+    "spearman_sas_area": 0.9781
+  },
+  {
+    "chain": "7vyk_D",
+    "status": "ok",
+    "n_shared": 61,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.5362,
+    "max_abs_diff": 0.3117,
+    "mean_abs_diff": 0.0498,
+    "spearman_sas_area": 0.0138
+  },
+  {
+    "chain": "5x9q_A",
+    "status": "ok",
+    "n_shared": 144,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "1klf_A",
+    "status": "ok",
+    "n_shared": 191,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "7dyd_A",
+    "status": "ok",
+    "n_shared": 126,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "3lrq_A",
+    "status": "ok",
+    "n_shared": 80,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9762,
+    "max_abs_diff": 0.0316,
+    "mean_abs_diff": 0.0083,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "4fn6_A",
+    "status": "ok",
+    "n_shared": 206,
+    "residue_overlap": 1.0,
+    "pearson_prob": 0.9997,
+    "max_abs_diff": 0.0144,
+    "mean_abs_diff": 0.0017,
+    "spearman_sas_area": 1.0
+  },
+  {
+    "chain": "2v4j_E",
+    "status": "ok",
+    "n_shared": 358,
+    "residue_overlap": 1.0,
+    "pearson_prob": 1.0,
+    "max_abs_diff": 0.0,
+    "mean_abs_diff": 0.0,
+    "spearman_sas_area": 1.0
+  }
+]
