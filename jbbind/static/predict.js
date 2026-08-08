@@ -66,9 +66,25 @@ export function init() {
 }
 
 export function onShow() {
-  if (!$("setup").options.length) renderSetups();
+  if (!$("setup").options.length) {
+    renderSetups();
+    applySavedSettings();
+  }
   viewer?.resize();
   drawTrack();
+}
+
+/** Adopt the server-side defaults the Settings page writes. */
+function applySavedSettings() {
+  const s = state.settings;
+  if (!s) return;
+  $("threshold").value = String(s.threshold);
+  $("thr-value").textContent = Number(s.threshold).toFixed(2);
+  $("ramp-tick").style.left = `${s.threshold * 100}%`;
+  $("colormode").value = s.color_mode;
+  $("show-surface").checked = !!s.show_surface;
+  $("show-sidechains").checked = !!s.show_sidechains;
+  updateThresholdHint();
 }
 
 /* ------------------------------------------------------------------ inputs */

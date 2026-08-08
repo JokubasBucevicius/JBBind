@@ -196,6 +196,9 @@ async function save() {
     state.settings = data.settings;
     dirty = {};
     $("save").disabled = true;
+    // The Predict page reads these on first show; force it to pick them up again so a
+    // saved change is visible immediately rather than after a reload.
+    document.getElementById("setup").replaceChildren();
     msg.textContent = "saved";
     setTimeout(() => { if (msg.textContent === "saved") msg.textContent = ""; }, 2500);
   } catch (err) {
