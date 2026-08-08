@@ -77,8 +77,14 @@ worth it for batch runs — ESM-2 is the bottleneck and everything else is milli
 ```bash
 pip install -r requirements.txt
 export PATH="$PATH:/path/to/voronota/expansion_js"     # needs voronota-js on PATH
-make serve
+make serve                                             # http://127.0.0.1:8000
 ```
+
+**Viewing it over SSH / from VS Code Remote:** the app binds to localhost, so forward the
+port. In VS Code, open the **Ports** panel → *Forward a Port* → `8000`, then open the
+forwarded URL. From a plain terminal: `ssh -L 8000:127.0.0.1:8000 <host>`.
+
+First start takes 30–60 s while ESM-2 loads; `/readyz` reports `degraded` until it is up.
 
 ---
 
