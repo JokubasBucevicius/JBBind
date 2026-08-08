@@ -25,15 +25,17 @@ From: python:3.13-slim
 # is already in place when %post runs. Single stage on purpose: a multi-stage def would
 # need a registry or a second build, and the build-tool purge at the end of %post
 # recovers most of what a builder stage would have saved.
-# No trailing slashes: Apptainer's %files copies `src dst` like `cp -r`, and a trailing
-# slash on the destination nests the directory inside itself (/app/tools/tools/...).
+# Apptainer's %files copies a directory INTO the destination, creating the destination
+# first -- so `tools /app/tools` yields /app/tools/tools, not /app/tools. Name the PARENT
+# as the destination. (Docker's COPY has the opposite convention, which is why the
+# Dockerfile writes `COPY tools/ /app/tools/`.)
 %files
     requirements.txt /opt/build/requirements.txt
-    tools /app/tools
-    models /app/models
-    jbbind /app/jbbind
-    tests /app/tests
-    pytest.ini /app/pytest.ini
+    tools /app
+    models /app
+    jbbind /app
+    tests /app
+    pytest.ini /app
 
 %post
     set -eux
@@ -85,11 +87,15 @@ From: python:3.13-slim
     set -eux
     # Fail loudly with a listing rather than a bare chmod error: a %files path mistake
     # otherwise surfaces as "No such file or directory" with no clue what landed where.
-    if [ ! -f /app/tools/describe-receptor-chain ]; then
-        echo "ERROR: tool script missing. /app contains:" >&2
-        find /app -maxdepth 3 >&2
-        exit 1
-    fi
+    for required in /app/tools/describe-receptor-chain /app/jbbind/main.py \
+                    /app/models/MANIFEST.json /app/tests/conftest.py; do
+        if [ ! -f "$required" ]; then
+            echo "ERROR: $required is missing. /app contains:" >&2
+            find /app -maxdepth 2 >&2
+            exit 1
+        fi
+    done
+    test "$(python -c 'import json;print(len(json.load(open("/app/models/MANIFEST.json"))))')" = "20"
     chmod +x /app/tools/describe-receptor-chain
     mkdir -p /data/cache
 
