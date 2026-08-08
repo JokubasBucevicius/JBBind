@@ -156,7 +156,15 @@ see. Every claim below is a command you can re-run.
 | **Tier 3c** — SEQRES renumbering matches the training numbering | **190/190 = 100%** of sound chains | `make verify-renumbering` |
 | **P0.5** — the `gnn_mlp` embedder recovery (below) | max abs diff **1.19e-07** vs the recorded `predictions.npz` | `scripts/spike_gnn_mlp_embedder.py` |
 
-164 tests run in ~16 s and need no access to the research tree — the fixtures are committed.
+172 tests run in ~20 s and need no access to the research tree — the fixtures are
+committed. They also run **inside** the built container (`make sif-test`), which is where a
+torch/pandas version drift would show up first: the container reproduces the host's
+predictions exactly (1YCR chain A → M62 0.689, T63 0.669, F55 0.662).
+
+The parity assertions run single-threaded with deterministic algorithms. GATv2Conv's
+message passing is a scatter-add, and multi-threaded CPU reductions accumulate in
+nondeterministic order — which made the 1e-6 tolerance occasionally lucky. Removing the
+nondeterminism is the fix; loosening the tolerance would not be.
 
 ### The `gnn_mlp` checkpoints were incomplete, and are recovered
 
