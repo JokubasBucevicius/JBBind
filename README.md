@@ -150,6 +150,31 @@ helix — and scores RNA at most 0.202 on the same chain.
 
 ---
 
+## The 3D viewer
+
+Mol* renders the structure, wrapped by `jbbind/static/viewer.js`. Nothing else in the
+front end touches the plugin: `viewer.js` takes residue indices and CSS colours and hands
+back hover and click events, so the score ramp has one definition and the engine stays
+replaceable.
+
+Scores reach the geometry through a registered Mol* colour theme (`jbbind-score`) rather
+than through the B-factor column, so the seven-stop ramp, its OKLab interpolation and the
+out-of-ramp grey for unscored residues are byte-identical to the sequence track, the
+legend and `predict_bindingsites.py`. Residues are addressed by `auth_seq_id`, which is
+the SEQRES index because `receptor.pdb` is already renumbered to it.
+
+The theme carries no parameters, so Mol* cannot tell that new scores are the same theme
+under a different meaning; changing the task, label or threshold therefore rebuilds the
+representations instead of recolouring them in place. That is a few tens of ms for one
+chain, and the threshold slider is debounced so a drag does not queue a rebuild per pixel.
+The molecular surface is the one expensive rebuild, which is why it is off by default.
+
+Mol*'s own panels are all disabled — the page already has a left rail, a legend and a
+sequence track — and every viewport button is named explicitly in `viewer.js` so a Mol*
+upgrade cannot quietly add one. Reset-camera is the only one kept.
+
+---
+
 ## How it works
 
 ```
@@ -327,7 +352,7 @@ jbbind/
   core/features/    voronota subprocess, atom→residue aggregation, PyG graph
   core/esm/         ESM-2 embedder + sequence-hash cache
   core/             pipeline, batch, jobs, cache, artifacts
-  static/           three-page SPA, 3Dmol vendored locally
+  static/           three-page SPA; viewer.js wraps Mol*, vendored locally
 tools/              the forked voronota script + the pristine original
 models/             20 checkpoints, MANIFEST.json, METRICS.json
 scripts/            model export, fixture generation, the four verification scripts
@@ -373,4 +398,4 @@ verifiable rather than a fork that quietly drifts.
 
 ## Attribution
 
-Voronota, ESM-2 and 3Dmol.js are bundled — see `NOTICE` for licences and citations.
+Voronota, ESM-2 and Mol* are bundled — see `NOTICE` for licences and citations.

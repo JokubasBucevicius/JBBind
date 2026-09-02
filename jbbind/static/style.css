@@ -248,6 +248,10 @@ button.secondary:hover { background: var(--surface-3); }
 /* viewer */
 #viewer { flex: 1; position: relative; min-height: 420px; background: var(--surface-0); }
 #viewer canvas { border-radius: 0 0 var(--radius) var(--radius); }
+/* Mol* mounts .msp-plugin absolutely into #viewer and paints its own light
+   background under the canvas; in dark mode that flashes while the structure
+   parses. The canvas colour itself is set from --surface-0 in viewer.js. */
+#viewer .msp-plugin { background: var(--surface-0); }
 
 .legend {
   display: flex; align-items: center; gap: 10px;

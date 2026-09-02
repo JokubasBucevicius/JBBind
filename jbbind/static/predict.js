@@ -1,8 +1,8 @@
-/* Predict page: 3Dmol viewer, sequence track, residue table, downloads. */
+/* Predict page: viewer wiring, sequence track, residue table, downloads. */
 
 import { api, cssVar, el, fmt, rampSteps, scoreColor, state } from "/static/app.js";
+import * as viewer from "/static/viewer.js";
 
-let viewer = null;
 let sortKey = "p";
 let sortDir = -1;
 let hoverResi = null;
@@ -59,9 +59,10 @@ export function init() {
   track.addEventListener("mouseleave", () => { hoverResi = null; drawTrack(); });
   track.addEventListener("click", () => { if (hoverResi) focusResidue(hoverResi); });
 
-  window.addEventListener("resize", () => { drawTrack(); viewer?.resize(); });
+  window.addEventListener("resize", () => { drawTrack(); viewer.resize(); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-    repaint(); drawTrack();
+    viewer.setBackground(cssVar("--surface-0"));
+    repaint();
   });
 }
 
@@ -70,7 +71,7 @@ export function onShow() {
     renderSetups();
     applySavedSettings();
   }
-  viewer?.resize();
+  viewer.resize();
   drawTrack();
 }
 
@@ -205,18 +206,17 @@ async function runPrediction() {
       });
 
       state.result = result;
-      onResult(result);
+      await onResult(result);
     });
   } finally {
     $("run").disabled = false;
   }
 }
 
-function onResult(result) {
+async function onResult(result) {
   renderWarnings(result.warnings);
   $("viewer-title").textContent =
     `${result.source} · chain ${result.chain_id} · ${result.arch}`;
-  loadViewer(result);
   renderTable();
   drawTrack();
   renderDownloads();
@@ -225,6 +225,8 @@ function onResult(result) {
     `${result.n_predicted} predicted · ${result.unpredicted.length} not predicted · ` +
     `${result.sequence.length} in sequence · ${Object.entries(result.timings_ms)
       .map(([k, v]) => `${k} ${v}ms`).join("  ")}`;
+  // Last: the cheap panels should be on screen before the structure parses.
+  await loadViewer(result);
 }
 
 function renderWarnings(warnings) {
@@ -249,30 +251,13 @@ const humanizeCode = (c) => CODE_TITLES[c] || c;
 
 /* ---------------------------------------------------------------- 3D view */
 
-function loadViewer(result) {
-  const container = $("viewer");
-  if (!viewer) {
-    viewer = $3Dmol.createViewer(container, { backgroundColor: cssVar("--surface-0") });
-  }
-  viewer.clear();
-  viewer.addModel(result.receptor_pdb || "", "pdb");
-  viewer.setHoverable({}, true,
-    (atom) => {
-      if (!atom) return;
-      const r = byResi()[atom.resi];
-      const text = r
-        ? `${r.aa}${r.auth}  ${fmt.n(r.p[view.setup][view.label], 2)}`
-        : `${atom.resn}${atom.resi}  not predicted`;
-      viewer.addLabel(text, {
-        position: atom, backgroundColor: cssVar("--surface-3"),
-        fontColor: cssVar("--text-primary"), fontSize: 12, borderThickness: 0,
-        backgroundOpacity: 0.95, inFront: true,
-      });
-    },
-    () => viewer.removeAllLabels());
-  repaint();
-  viewer.zoomTo();
-  viewer.render();
+async function loadViewer(result) {
+  await viewer.mount($("viewer"), { background: cssVar("--surface-0") });
+  viewer.onHover(onViewerHover);
+  viewer.onClick(focusResidue);
+  await viewer.loadStructure(result.receptor_pdb || "");
+  await paintViewer();
+  viewer.resetCamera();
 }
 
 let _byResi = null;
@@ -284,44 +269,60 @@ function byResi() {
   return map;
 }
 
+/** Score lookup for the displayed task and label; null where there is none. */
+function scoreLookup() {
+  const map = byResi();
+  const setup = view.setup, label = view.label;
+  return (resi) => {
+    const r = map[resi];
+    return r ? r.p[setup][label] : null;
+  };
+}
+
+let paintTimer = null;
+
+/** Coalesce the repaints a slider drag produces into one rebuild. */
+function schedulePaint() {
+  clearTimeout(paintTimer);
+  paintTimer = setTimeout(paintViewer, 120);
+}
+
+function paintViewer() {
+  clearTimeout(paintTimer);
+  if (!viewer.isReady() || !state.result) return Promise.resolve();
+  const score = scoreLookup();
+  const opts = { mode: view.colorMode, threshold: view.threshold, steps: rampSteps() };
+  return viewer.paint({
+    colorOf: (resi) => scoreColor(score(resi), opts),
+    // Guard the null: an unscored residue must not become a hit at threshold 0.
+    isHit: (resi) => { const p = score(resi); return p !== null && p >= view.threshold; },
+    showSurface: $("show-surface").checked,
+    showSticks: $("show-sidechains").checked,
+    unpredicted: cssVar("--unpredicted"),
+  }).catch((err) => console.error("could not repaint the viewer", err));
+}
+
 function repaint() {
   updateThresholdHint();
-  if (!viewer || !state.result) { drawTrack(); return; }
   _byResi = null;
-  const map = byResi();
-  const steps = rampSteps();
-  const opts = { mode: view.colorMode, threshold: view.threshold, steps };
-  const setup = view.setup, label = view.label;
-
-  const colorfunc = (atom) => {
-    const r = map[atom.resi];
-    return scoreColor(r ? r.p[setup][label] : null, opts);
-  };
-
-  viewer.setStyle({}, { cartoon: { colorfunc } });
-
-  if ($("show-sidechains").checked) {
-    const hits = state.result.residues
-      .filter((r) => r.p[setup][label] >= view.threshold)
-      .map((r) => r.i);
-    if (hits.length) {
-      viewer.addStyle({ resi: hits }, { stick: { radius: 0.16, colorfunc } });
-    }
-  }
-
-  viewer.removeAllSurfaces();
-  if ($("show-surface").checked) {
-    viewer.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.85, colorfunc });
-  }
-  viewer.render();
   drawTrack();
   renderTable();
+  schedulePaint();
 }
 
 function focusResidue(resi) {
-  if (!viewer) return;
-  viewer.zoomTo({ resi: [resi] });
-  viewer.render();
+  hoverResi = resi;
+  describeResidue(resi);
+  drawTrack();
+  viewer.focusResidue(resi);
+}
+
+/** Mol* hover: keep the track cursor and the hover line in step with the 3D view. */
+function onViewerHover(resi) {
+  if (resi === hoverResi) return;
+  hoverResi = resi;
+  if (resi !== null) describeResidue(resi);
+  drawTrack();
 }
 
 /* --------------------------------------------------------- sequence track */
@@ -411,13 +412,20 @@ function onTrackMove(e) {
   const i = Math.floor((e.clientX - rect.left - pad) / cellW) + 1;
   if (i < 1 || i > n) { hoverResi = null; drawTrack(); return; }
   hoverResi = i;
+  describeResidue(i);
+  drawTrack();
+}
+
+/** Fill the hover line for a SEQRES index, from the track or from the viewer. */
+function describeResidue(i) {
+  const result = state.result;
+  if (!result) return;
   const r = byResi()[i];
-  const aa = result.sequence[i - 1];
+  const aa = result.sequence[i - 1] ?? "?";
   $("seq-hover").textContent = r
     ? `${aa}${i} (auth ${r.chain}/${r.auth}${r.icode}) · score ${fmt.n(r.p[view.setup][view.label], 3)}` +
       ` · SASA ${r.sas === null ? "—" : fmt.n(r.sas, 1)} Å²`
     : `${aa}${i} · not predicted (unobserved in the structure, buried, or past the ESM limit)`;
-  drawTrack();
 }
 
 /* ------------------------------------------------------------------ table */

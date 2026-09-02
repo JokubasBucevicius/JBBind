@@ -27,14 +27,16 @@ per-residue sequence embeddings.
   protein structure with a language model." Science, 2023.
 
 --------------------------------------------------------------------------------
-3Dmol.js  —  https://3dmol.csb.pitt.edu/
-BSD-3-Clause. Copyright (c) University of Pittsburgh.
+Mol*  —  https://molstar.org/
+MIT License. Copyright (c) 2018-  Mol* contributors.
 
-Vendored at `jbbind/static/vendor/3Dmol-min.js` so the container renders
-structures with no external network access.
+Version 5.11.0, vendored at `jbbind/static/vendor/molstar.js` and
+`jbbind/static/vendor/molstar.css` so the container renders structures with no
+external network access.
 
-  Rego N, Koes D. "3Dmol.js: molecular visualization with WebGL."
-  Bioinformatics, 2015.
+  Sehnal D, Bittrich S, Deshpande M, et al. "Mol* Viewer: modern web app for 3D
+  visualization and analysis of large biomolecular structures."
+  Nucleic Acids Research, 2021.
 
 --------------------------------------------------------------------------------
 gemmi  —  https://gemmi.readthedocs.io/    MPL-2.0
