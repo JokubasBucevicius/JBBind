@@ -19,6 +19,10 @@ scikit-learn==1.8.0
 pyarrow==25.0.0
 gemmi==0.7.5
 
+# predict_bindingsites.py only; the package and the web app never import it, and the
+# Agg backend is forced there so it stays importable on a headless compute node.
+matplotlib==3.10.8
+
 fastapi==0.141.1
 uvicorn[standard]==0.52.1
 python-multipart==0.0.32

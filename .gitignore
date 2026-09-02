@@ -19,6 +19,9 @@ cache/
 results/
 *.log
 
+# Default --out of predict_bindingsites.py
+/predictions/
+
 # Checkpoints and fixtures are tracked deliberately (see below), but nothing else
 # torch-shaped should sneak in.
 /emb/

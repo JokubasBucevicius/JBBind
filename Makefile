@@ -18,6 +18,10 @@ help:
 serve: ## run the web app locally on $(PORT)
 	$(PY) -m uvicorn jbbind.main:app --host 127.0.0.1 --port $(PORT) --reload
 
+.PHONY: predict
+predict: ## one chain end to end, e.g. make predict TARGET=3hdd_A SETUP=dna_rna
+	$(PY) predict_bindingsites.py $(TARGET) --setup $(or $(SETUP),protein)
+
 .PHONY: test
 test: ## run the test suite (no research repo needed)
 	$(PY) -m pytest tests/ -p no:warnings

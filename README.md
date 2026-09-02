@@ -7,6 +7,7 @@ residue for whether it binds a protein or a nucleic acid — painted on the 3D s
 with a metrics dashboard for the models behind it and a settings page for swapping them.
 
 ```
+python predict_bindingsites.py 1ycr_A  # scores + figures + viewer scripts
 jbbind predict 1ycr --chain A          # one chain, to the terminal
 jbbind batch targets.csv --out out/    # thousands of chains, resumable
 jbbind serve                           # the web app
@@ -91,6 +92,61 @@ port. In VS Code, open the **Ports** panel → *Forward a Port* → `8000`, then
 forwarded URL. From a plain terminal: `ssh -L 8000:127.0.0.1:8000 <host>`.
 
 First start takes 30–60 s while ESM-2 loads; `/readyz` reports `degraded` until it is up.
+
+---
+
+## `predict_bindingsites.py` — one chain in, scores and pictures out
+
+The standalone front end, in the shape the published tools use. No server, no browser,
+nothing to configure: name a chain and it writes a folder.
+
+```bash
+export PATH="$PATH:/path/to/voronota/expansion_js"
+python predict_bindingsites.py 1ycr_A                    # PDB ID + chain
+python predict_bindingsites.py 3hdd_A --setup dna_rna    # a different task
+python predict_bindingsites.py 6lu7 --all-chains         # every protein chain
+python predict_bindingsites.py model.pdb --chain A       # a local structure
+python predict_bindingsites.py --list targets.txt        # pdb_id[,chain] per line
+```
+
+```
+predictions/3hdd_A/
+    predictions_3hdd_A.csv                 every residue, every requested label
+    annotated_3hdd_A_dna_rna_DNA.pdb       score in the B-factor column
+    3hdd_A_dna_rna_DNA.png                 the figure
+    3hdd_A_dna_rna_DNA.pml                 PyMOL session script
+    3hdd_A_dna_rna_DNA.cxc                 ChimeraX session script
+```
+
+`--setup` defaults to `protein` and takes any of the five tasks, or `all` to run every
+one of them in a single pass — the tessellation and the ESM forward are shared, so all
+five cost about as much as one. `--threshold` (default 0.50) sets which residues are
+counted as hits, highlighted in the figure and selected in the viewer scripts. Only
+`gnn_mlp` is served.
+
+The figure carries four panels: two 3D views of the CA trace coloured by score, the
+highest-scoring residues with their SASA, the score along the chain, and the ranked score
+curve. The seven-stop ramp and the out-of-ramp grey are the same ones the web viewer uses,
+interpolated in OKLab by the same rule, so a residue looks identical in both.
+
+Three things the figure is deliberately careful about, all of which are easy to get wrong:
+
+- **Unscored residues are drawn, in grey, outside the ramp.** Buried residues and anything
+  past ESM-2's 1022-token limit have no prediction. Omitting them from the 3D trace would
+  read as a break in the chain; colouring them pale blue would read as a confident
+  negative. They also get a tick rug under the sequence track.
+- **The B-factor sentinel is `-1.00`, never `0.00`**, and both viewer scripts exclude it
+  from the colour ramp explicitly. `spectrum b` over the raw range would otherwise stretch
+  the ramp down to −1 and push every real score into the top half of the scale.
+- **The colour axis is pinned to 0–1**, not to the chain's own min and max, so two chains
+  can be put side by side. The cost is that a chain whose scores all sit in a narrow band
+  looks uniformly mid-blue — which is honest, given the calibration warning above, but
+  means the ranked-score panel is the one to read for such chains.
+
+A worked example: `3hdd_A` is the engrailed homeodomain on DNA. The `dna_rna` model puts
+23 residues above 0.5 with a sharp cliff in the ranked curve — the N-terminal arm (R5, T6,
+F8) and helix 3 (I47, W48, Q50, N51, R53, A54, K55, K57, K58), which is the recognition
+helix — and scores RNA at most 0.202 on the same chain.
 
 ---
 
@@ -264,6 +320,7 @@ Interactive docs at `/api/docs`.
 ## Layout
 
 ```
+predict_bindingsites.py   the standalone one-chain front end (figures, viewer scripts)
 jbbind/
   core/nn/          model classes (copied verbatim), registry, label setups
   core/structure/   fetch, normalize, modified residues  ← the renumbering lives here
@@ -274,7 +331,7 @@ jbbind/
 tools/              the forked voronota script + the pristine original
 models/             20 checkpoints, MANIFEST.json, METRICS.json
 scripts/            model export, fixture generation, the four verification scripts
-tests/              parity, normalization, API — 164 tests, no research repo needed
+tests/              parity, normalization, API, CLI — no research repo needed
 ```
 
 ### Code lifted from the research repo
