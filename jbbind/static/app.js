@@ -22,6 +22,11 @@ export const api = {
     if (!r.ok) throw await toError(r);
     return r.json();
   },
+  async text(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw await toError(r);
+    return r.text();
+  },
   async upload(url, file) {
     const fd = new FormData();
     fd.append("file", file);

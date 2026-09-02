@@ -255,7 +255,11 @@ async function loadViewer(result) {
   await viewer.mount($("viewer"), { background: cssVar("--surface-0") });
   viewer.onHover(onViewerHover);
   viewer.onClick(focusResidue);
-  await viewer.loadStructure(result.receptor_pdb || "");
+  // The receptor is ~40 KB of PDB text and is deliberately not in the job JSON,
+  // so it comes from its own endpoint. Reading it off the result — which never
+  // carried it — is what left this viewer empty.
+  const pdb = await api.text(`/api/v1/artifacts/${state.jobId}/receptor.pdb`);
+  await viewer.loadStructure(pdb);
   await paintViewer();
   viewer.resetCamera();
 }
@@ -307,6 +311,8 @@ function repaint() {
   _byResi = null;
   drawTrack();
   renderTable();
+  // The download URLs embed setup, label and threshold, so they go stale here too.
+  if (state.jobId) renderDownloads();
   schedulePaint();
 }
 
@@ -488,7 +494,14 @@ function renderTable() {
 function renderDownloads() {
   const box = $("downloads");
   const job = state.jobId;
+  // Everything the command-line script writes, for the current task and label.
+  const q = `setup=${view.setup}&label=${view.label}&threshold=${view.threshold}`;
   box.replaceChildren(
+    link(`/api/v1/artifacts/${job}/report.html?threshold=${view.threshold}`,
+         "report.html",
+         "This page as one standalone file — Mol* included, opens anywhere, no server."),
+    link(`/api/v1/artifacts/${job}/figure.png?${q}`, "figure.png",
+         "The four-panel figure: two 3D views, top residues, score along the chain."),
     link(`/api/v1/artifacts/${job}/predictions.csv`, "predictions.csv",
          "Every residue, every label, every task."),
     link(`/api/v1/artifacts/${job}/predictions.pdb?setup=${view.setup}&label=${view.label}`,
@@ -496,6 +509,10 @@ function renderDownloads() {
          "Structure with the current score in the B-factor column (−1.00 = not predicted)."),
     link(`/api/v1/artifacts/${job}/receptor.pdb`, "receptor.pdb",
          "The exact atoms the model saw, renumbered to SEQRES indices."),
+    link(`/api/v1/artifacts/${job}/session.pml?${q}`, "session.pml",
+         "PyMOL session: loads predictions.pdb, colours by score, shows the hits."),
+    link(`/api/v1/artifacts/${job}/session.cxc?${q}`, "session.cxc",
+         "The same session for ChimeraX."),
     el("button", { onclick: copyPymol }, "Copy PyMOL selection",
        el("span", { class: "sub" }, "select … chain X and resi 12+15+18 …")),
   );

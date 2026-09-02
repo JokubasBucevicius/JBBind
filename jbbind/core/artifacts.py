@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,6 +14,11 @@ if TYPE_CHECKING:
 #: Chosen negative so it can never be mistaken for a probability, and so PyMOL/Chimera
 #: colour ramps put it clearly outside the data range.
 UNPREDICTED_B = -1.00
+
+
+def slug(text: str) -> str:
+    """A label or setup name as a filename fragment."""
+    return re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_")
 
 
 def predictions_csv(result: "PredictionResult", setup: str | None = None) -> str:

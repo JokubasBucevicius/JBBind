@@ -209,3 +209,68 @@ def test_cache_clear_rejects_unknown_namespace(client):
     c, _, _ = client
     r = c.post("/api/v1/cache/clear?namespace=bogus")
     assert r.json()["code"] == "InvalidSettings"
+
+
+# ------------------------------------------------------- generated artifacts
+# Everything predict_bindingsites.py writes is also served here, so the browser
+# is a complete front end and nothing needs the command line.
+
+def test_report_is_one_self_contained_file(client):
+    c, _, _ = client
+    r = c.get("/api/v1/artifacts/testjob/report.html?threshold=0.5")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/html")
+    assert "attachment" in r.headers["content-disposition"]
+    html = r.text
+    # Mol* inlined, not linked: the download has to work wherever it lands.
+    assert "_assets/molstar.js" not in html
+    assert len(html) > 4_000_000
+    # and the structure travels with it
+    assert "ATOM      2  CA  ALA A   1" in html
+
+
+def test_report_covers_every_setup_not_just_the_displayed_one(client):
+    c, _, res = client
+    html = c.get("/api/v1/artifacts/testjob/report.html").text
+    payload = html.split('id="jbbind-data"')[1].split("</script>")[0].split(">", 1)[1]
+    assert json.loads(payload)["setups"] == list(res.label_names)
+
+
+def test_figure_is_a_png(client):
+    c, _, _ = client
+    r = c.get("/api/v1/artifacts/testjob/figure.png"
+              "?setup=protein_nucleic&label=0&threshold=0.5")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert r.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+@pytest.mark.parametrize("ext,marker", [("pml", "set_color jb0"),
+                                        ("cxc", "@@bfactor>=50")])
+def test_viewer_sessions_are_downloadable(client, ext, marker):
+    c, _, _ = client
+    r = c.get(f"/api/v1/artifacts/testjob/session.{ext}"
+              f"?setup=protein_nucleic&label=0&threshold=0.5")
+    assert r.status_code == 200
+    assert marker in r.text
+    assert r.headers["content-disposition"].endswith(f'.{ext}"')
+
+
+def test_the_job_json_omits_the_receptor_and_the_endpoint_serves_it(client):
+    """The receptor is ~40 KB of PDB text and stays out of the job payload.
+
+    The viewer therefore has to fetch it. Reading it off the result instead --
+    which never carried it -- is what left the 3D viewer loading an empty model.
+    """
+    from jbbind.main import serialize
+
+    c, _, res = client
+    assert "receptor_pdb" not in serialize(res, UserSettings())
+    assert c.get("/api/v1/artifacts/testjob/receptor.pdb").text.startswith("ATOM")
+
+
+def test_predict_js_fetches_the_receptor_rather_than_reading_the_result():
+    """A guard on the front end, since no Python test can catch this one."""
+    js = (Path(__file__).parents[1] / "jbbind/static/predict.js").read_text()
+    assert "result.receptor_pdb" not in js
+    assert "artifacts/${state.jobId}/receptor.pdb" in js

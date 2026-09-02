@@ -12,11 +12,14 @@ from typing import Optional
 
 import torch
 from fastapi import Body, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import (FileResponse, JSONResponse, PlainTextResponse,
-                               StreamingResponse)
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
+                               PlainTextResponse, Response, StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 
-from .core.artifacts import predictions_csv, predictions_pdb, pymol_selection
+from .core.artifacts import (predictions_csv, predictions_pdb, pymol_selection,
+                            slug)
+from .core.report import report_html
+from .core.viewers import chimerax_script, pymol_script
 from .core.cache import CacheSet, sha256_bytes
 from .core.esm.embedder import EsmEmbedder
 from .core.features.voronota import VoronotaError, voronota_version
@@ -318,6 +321,54 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
                        threshold: float = 0.5):
         res = _result_or_404(job_id)
         return PlainTextResponse(pymol_selection(res, setup, label, threshold))
+
+    def _session(job_id: str, setup: str, label: int, threshold: float, ext: str):
+        """A PyMOL or ChimeraX session, plus the annotated PDB it expects beside it."""
+        res = _result_or_404(job_id)
+        tag = f"{slug(setup)}_{slug(res.label_names[setup][label])}"
+        stem = f"jbbind_{res.chain_id}_{tag}"
+        write = pymol_script if ext == "pml" else chimerax_script
+        return PlainTextResponse(
+            write(stem, f"annotated_{stem}.pdb", f"{stem}.{ext}",
+                  res.label_names[setup][label], threshold),
+            headers={"Content-Disposition": f'attachment; filename="{stem}.{ext}"'})
+
+    @app.get("/api/v1/artifacts/{job_id}/session.pml")
+    def artifact_pml(job_id: str, setup: str = Query(...), label: int = 0,
+                     threshold: float = 0.5):
+        return _session(job_id, setup, label, threshold, "pml")
+
+    @app.get("/api/v1/artifacts/{job_id}/session.cxc")
+    def artifact_cxc(job_id: str, setup: str = Query(...), label: int = 0,
+                     threshold: float = 0.5):
+        return _session(job_id, setup, label, threshold, "cxc")
+
+    @app.get("/api/v1/artifacts/{job_id}/figure.png")
+    def artifact_figure(job_id: str, setup: str = Query(...), label: int = 0,
+                        threshold: float = 0.5):
+        from .core.figure import figure_png     # imports matplotlib; endpoint-only
+
+        res = _result_or_404(job_id)
+        tag = f"{slug(setup)}_{slug(res.label_names[setup][label])}"
+        name = f"jbbind_{res.chain_id}_{tag}.png"
+        return Response(
+            figure_png(res, setup, label, threshold), media_type="image/png",
+            headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+    @app.get("/api/v1/artifacts/{job_id}/report.html")
+    def artifact_report(job_id: str, threshold: float = 0.5):
+        """The standalone interactive report — Mol* inlined, so one file is enough.
+
+        Every setup the job predicted goes in, not just the displayed one: the
+        page has its own task selector and a download should not be narrower
+        than the page it came from.
+        """
+        res = _result_or_404(job_id)
+        name = f"{res.structure_id}_{res.chain_id}"
+        return HTMLResponse(
+            report_html(res, list(res.label_names), threshold, name),
+            headers={"Content-Disposition":
+                     f'attachment; filename="report_{name}.html"'})
 
     # ------------------------------------------------------------------ SPA
 

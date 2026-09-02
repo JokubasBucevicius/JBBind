@@ -204,6 +204,24 @@ not grow an `import` — a test asserts it has none.
 
 ---
 
+## Everything from the browser
+
+`jbbind serve` is a complete front end: nothing needs the command line except starting
+the server. The Predict page fetches or takes an upload, picks a chain, runs the model
+and shows the result, and its Download tab serves every artifact
+`predict_bindingsites.py` writes — the standalone HTML report, the four-panel figure, the
+CSV, the B-factor PDB, the receptor, and PyMOL and ChimeraX sessions. The report and the
+figure come out byte-identical either way, because both front ends call the same
+`jbbind.core` modules rather than each holding a copy.
+
+That refactor is what made it possible: `colour.py`, `figure.py`, `report.py` and
+`viewers.py` moved out of the script and into the package, and the script became the thin
+wrapper its docstring always claimed it was. `figure.py` is the only module that imports
+matplotlib, and the web app imports it inside the figure endpoint so a server that never
+draws one never pays for it.
+
+---
+
 ## How it works
 
 ```
@@ -352,6 +370,7 @@ GET  /api/v1/structures/by-pdb-id/{id}     POST /api/v1/structures        (uploa
 POST /api/v1/predict            -> 202 {job_id}
 GET  /api/v1/jobs/{id}          /api/v1/jobs/{id}/events   (SSE progress)
 GET  /api/v1/artifacts/{id}/{receptor.pdb|predictions.csv|predictions.pdb|pymol.txt}
+GET  /api/v1/artifacts/{id}/{report.html|figure.png|session.pml|session.cxc}
 GET  /api/v1/settings           PUT /api/v1/settings
 ```
 
@@ -381,8 +400,12 @@ jbbind/
   core/features/    voronota subprocess, atom→residue aggregation, PyG graph
   core/esm/         ESM-2 embedder + sequence-hash cache
   core/             pipeline, batch, jobs, cache, artifacts
+  core/colour.py    the score ramp every rendering shares
+  core/figure.py    the four-panel PNG   ← the only thing that imports matplotlib
+  core/report.py    the standalone interactive HTML report
+  core/viewers.py   PyMOL and ChimeraX session scripts
   static/           three-page SPA; viewer.js wraps Mol*, vendored locally
-  report_template.html  the standalone HTML report predict_bindingsites.py fills in
+  report_template.html  the HTML report's template
 tools/              the forked voronota script + the pristine original
 models/             20 checkpoints, MANIFEST.json, METRICS.json
 scripts/            model export, fixture generation, the four verification scripts
