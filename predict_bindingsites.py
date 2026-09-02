@@ -2,7 +2,7 @@
 """JBBind — per-residue binding-site prediction from a structure.
 
 A single-command front end in the shape the published tools use: give it a PDB chain,
-get scores and pictures.
+get scores, pictures, and an interactive report that opens in your browser.
 
     python predict_bindingsites.py 1ycr_A
     python predict_bindingsites.py 1ycr --chain A --setup nucleic
@@ -13,11 +13,13 @@ get scores and pictures.
 Each chain gets its own folder under --out (default ``predictions/``):
 
     predictions/1ycr_A/
+        report_1ycr_A.html                     interactive Mol* report  <- opens
         predictions_1ycr_A.csv                 every residue, every requested label
         annotated_1ycr_A_protein_Protein.pdb   score in the B-factor column
         1ycr_A_protein_Protein.png             the figure
         1ycr_A_protein_Protein.pml             PyMOL session script
         1ycr_A_protein_Protein.cxc             ChimeraX session script
+    predictions/_assets/                       Mol*, copied once, shared by every report
 
 This is a thin wrapper. Every number it prints comes from ``jbbind.core.pipeline``, the
 same code path the web app and the test suite exercise — the point of the script is the
@@ -31,10 +33,13 @@ the examples above.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
+import shutil
 import sys
 import time
+import webbrowser
 from dataclasses import asdict
 from pathlib import Path
 
@@ -395,6 +400,140 @@ view
 """
 
 
+# --------------------------------------------------------------------------- report
+
+REPORT_TEMPLATE = REPO / "jbbind" / "report_template.html"
+VIEWER_JS = REPO / "jbbind" / "static" / "viewer.js"
+MOLSTAR_JS = REPO / "jbbind" / "static" / "vendor" / "molstar.js"
+MOLSTAR_CSS = REPO / "jbbind" / "static" / "vendor" / "molstar.css"
+
+_EXPORT = re.compile(r"^export\s+", re.MULTILINE)
+_IMPORT = re.compile(r"^import\s+", re.MULTILINE)
+
+
+def deexport(js: str) -> str:
+    """``viewer.js`` as a classic script.
+
+    The report cannot import an ES module: browsers refuse module scripts on
+    ``file://`` URLs, which is exactly how this page is opened. Stripping the
+    ``export`` keywords lets the report inline the very file the web app
+    imports, instead of keeping a second copy of the Mol* wrapper that would
+    quietly drift out of step with it.
+    """
+    if _IMPORT.search(js):
+        raise RuntimeError("viewer.js must not import anything: the HTML report "
+                           "inlines it as a classic script")
+    return _EXPORT.sub("", js)
+
+
+def score_hex(p: float) -> str:
+    """A score's colour, from the same OKLab ramp the figure uses."""
+    from matplotlib.colors import to_hex
+    return to_hex(CMAP(float(np.clip(p, 0.0, 1.0))))
+
+
+def report_data(result, setups, threshold: float, name: str) -> dict:
+    """Everything the report needs, with the continuous colours precomputed.
+
+    Colours are resolved here rather than in the page so the ramp keeps a single
+    definition: the report, the PNG and the viewer scripts all inherit ``CMAP``.
+    The page only has to pick between the two endpoint colours for the
+    above/below-threshold mode, which needs no interpolation.
+    """
+    residues = []
+    for r in result.residues:
+        sas = float(r.sas_area) if r.sas_area is not None else float("nan")
+        residues.append({
+            "i": r.seqres_index,
+            "ch": r.auth_chain,
+            "auth": r.auth_seq_id,
+            "ic": r.auth_icode or "",
+            "aa": r.one_letter,
+            "sas": None if np.isnan(sas) else round(sas, 2),
+            "p": {s: [round(float(v), 6) for v in r.probs[s]] for s in setups},
+            "c": {s: [score_hex(v) for v in r.probs[s]] for s in setups},
+        })
+    return {
+        "name": name,
+        "source": result.source,
+        "chain": result.chain_id,
+        "arch": result.arch,
+        "setups": list(setups),
+        "labels": {s: list(result.label_names[s]) for s in setups},
+        "threshold": threshold,
+        "sequence": result.sequence,
+        "residues": residues,
+        "receptorPdb": result.receptor_pdb,
+        "warnings": result.warnings,
+        "nPredicted": result.n_predicted,
+        "nUnpredicted": len(result.unpredicted),
+        "unpredicted": UNPREDICTED_COLOR,
+        "rampLo": SCORE_STOPS[0],
+        "rampHi": SCORE_STOPS[-1],
+        "generated": time.strftime("%Y-%m-%d %H:%M"),
+    }
+
+
+def ensure_assets(root: Path) -> Path:
+    """Mol* copied once per output root, shared by every report under it.
+
+    Inlining the 4.8 MB bundle in each report would make a hundred-chain run a
+    half-gigabyte of identical bytes. ``--standalone`` inlines it for the one
+    report you want to send someone.
+    """
+    assets = root / "_assets"
+    assets.mkdir(parents=True, exist_ok=True)
+    for src in (MOLSTAR_JS, MOLSTAR_CSS):
+        dst = assets / src.name
+        if not dst.exists() or dst.stat().st_size != src.stat().st_size:
+            shutil.copy2(src, dst)
+    return assets
+
+
+def write_report(result, setups, threshold: float, name: str, out_dir: Path,
+                 standalone: bool) -> Path:
+    template = REPORT_TEMPLATE.read_text(encoding="utf-8")
+    payload = json.dumps(report_data(result, setups, threshold, name),
+                         separators=(",", ":"))
+    # "</" cannot appear literally inside a <script> block; inside JSON it is
+    # only ever part of a string, where the escape is a no-op.
+    payload = payload.replace("</", "<\\/")
+
+    if standalone:
+        css = "<style>\n" + MOLSTAR_CSS.read_text(encoding="utf-8") + "\n</style>"
+        js = "<script>\n" + MOLSTAR_JS.read_text(encoding="utf-8") + "\n</script>"
+    else:
+        rel = Path(os.path.relpath(ensure_assets(out_dir.parent), out_dir)).as_posix()
+        css = f'<link rel="stylesheet" href="{rel}/molstar.css">'
+        js = f'<script src="{rel}/molstar.js"></script>'
+
+    heading = f"{result.source} · chain {result.chain_id}"
+    fills = {
+        "TITLE": f"JBBind — {name}",
+        "HEADING": heading,
+        "RAMP_CSS": ", ".join(SCORE_STOPS),
+        "MOLSTAR_CSS": css,
+        "MOLSTAR_JS": js,
+        "VIEWER_JS": deexport(VIEWER_JS.read_text(encoding="utf-8")),
+        "DATA": payload,
+    }
+    html = template
+    for key, value in fills.items():
+        token = "{{" + key + "}}"
+        if token not in html:
+            raise RuntimeError(f"report template has no {token} placeholder")
+        html = html.replace(token, value)
+    # Checked by name, not by looking for a leftover "{{": minified Mol* is full
+    # of them, and --standalone inlines the whole bundle into this string.
+    for key in fills:
+        if "{{" + key + "}}" in html:
+            raise RuntimeError(f"unsubstituted {{{{{key}}}}} left in the report")
+
+    path = out_dir / f"report_{name}.html"
+    path.write_text(html, encoding="utf-8")
+    return path
+
+
 # --------------------------------------------------------------------------- driver
 
 def build(cfg: Settings, arch: str, threshold: float):
@@ -420,7 +559,7 @@ def slug(text: str) -> str:
 
 
 def run_chain(pipeline, user, raw, sid, source, chain_id, name, setups, out_root,
-              threshold, no_figures, verbose) -> dict:
+              threshold, no_figures, no_report, standalone, verbose) -> dict:
     t0 = time.perf_counter()
     result = pipeline.predict(
         raw=raw, structure_id=sid, source=source, chain_id=chain_id, user=user,
@@ -451,6 +590,11 @@ def run_chain(pipeline, user, raw, sid, source, chain_id, name, setups, out_root
                 make_figure(result, setup, i, threshold, png)
                 written.append(png)
 
+    report = None
+    if not no_report:
+        report = write_report(result, setups, threshold, name, out_dir, standalone)
+        written.append(report)
+
     print(f"  {name}: {result.n_predicted} residues scored, "
           f"{len(result.unpredicted)} not predicted, {elapsed:.1f}s -> {out_dir}/")
     for setup in setups:
@@ -460,9 +604,11 @@ def run_chain(pipeline, user, raw, sid, source, chain_id, name, setups, out_root
             top = max(vals) if vals else float("nan")
             print(f"      {f'{setup}:{label}':<28} {n_hit:>4} at or above "
                   f"{threshold:g}   max {top:.3f}")
+    if report is not None:
+        print(f"      report                       {report}")
     for w in result.warnings:
         print(f"      warning [{w['code']}] {w['detail']}", file=sys.stderr)
-    return {"name": name, "files": written, "result": result}
+    return {"name": name, "files": written, "result": result, "report": report}
 
 
 def main(argv=None) -> int:
@@ -487,6 +633,16 @@ def main(argv=None) -> int:
     p.add_argument("--assembly", type=int, default=None,
                    help="fetch this biological assembly instead of the asymmetric unit")
     p.add_argument("--no-figures", action="store_true", help="skip the PNGs")
+    p.add_argument("--no-report", action="store_true",
+                   help="skip the interactive HTML report")
+    p.add_argument("--standalone", action="store_true",
+                   help="inline Mol* in each report (~5 MB) instead of sharing "
+                        "one copy under <out>/_assets, so a report can be sent on "
+                        "its own")
+    p.add_argument("--open", dest="open_report", action=argparse.BooleanOptionalAction,
+                   default=None,
+                   help="open the report in a browser (default: only when a single "
+                        "report was written)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -518,6 +674,7 @@ def main(argv=None) -> int:
     print(f"{len(targets)} target(s) -> {out_root}/")
 
     failed = 0
+    reports: list[Path] = []
     for spec, chain in targets:
         try:
             if Path(spec).exists():
@@ -540,9 +697,12 @@ def main(argv=None) -> int:
                 wanted = [chains[0].chain_id]
 
             for chain_id in wanted:
-                run_chain(pipeline, user, raw, sid, source, chain_id,
-                          f"{stem}_{chain_id}", setups, out_root, args.threshold,
-                          args.no_figures, args.verbose)
+                done = run_chain(pipeline, user, raw, sid, source, chain_id,
+                                 f"{stem}_{chain_id}", setups, out_root,
+                                 args.threshold, args.no_figures, args.no_report,
+                                 args.standalone, args.verbose)
+                if done["report"] is not None:
+                    reports.append(done["report"])
         except Exception as exc:
             failed += 1
             code = getattr(exc, "code", None)
@@ -554,6 +714,19 @@ def main(argv=None) -> int:
                 print(f"      {hint}", file=sys.stderr)
             if code is None and args.verbose:
                 raise
+
+    # Opening by default is only kind for a single report; a --list run would
+    # otherwise spray a hundred tabs.
+    want_open = args.open_report if args.open_report is not None else len(reports) == 1
+    if want_open and reports:
+        for path in reports:
+            if not webbrowser.open(path.resolve().as_uri()):
+                # Headless compute node, or no browser on this host. The path is
+                # already printed above; over SSH it is the forwarded editor that
+                # opens it, not us.
+                print("      (no browser available here — open the report yourself)",
+                      file=sys.stderr)
+                break
 
     if failed:
         print(f"\n{failed} target(s) failed", file=sys.stderr)

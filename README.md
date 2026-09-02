@@ -7,7 +7,7 @@ residue for whether it binds a protein or a nucleic acid — painted on the 3D s
 with a metrics dashboard for the models behind it and a settings page for swapping them.
 
 ```
-python predict_bindingsites.py 1ycr_A  # scores + figures + viewer scripts
+python predict_bindingsites.py 1ycr_A  # scores, figures, interactive report
 jbbind predict 1ycr --chain A          # one chain, to the terminal
 jbbind batch targets.csv --out out/    # thousands of chains, resumable
 jbbind serve                           # the web app
@@ -111,12 +111,28 @@ python predict_bindingsites.py --list targets.txt        # pdb_id[,chain] per li
 
 ```
 predictions/3hdd_A/
+    report_3hdd_A.html                     interactive Mol* report  <- opens
     predictions_3hdd_A.csv                 every residue, every requested label
     annotated_3hdd_A_dna_rna_DNA.pdb       score in the B-factor column
     3hdd_A_dna_rna_DNA.png                 the figure
     3hdd_A_dna_rna_DNA.pml                 PyMOL session script
     3hdd_A_dna_rna_DNA.cxc                 ChimeraX session script
+predictions/_assets/                       Mol*, copied once, shared by every report
 ```
+
+The report is the point of the run: the structure in Mol*, coloured by score, with the
+label, the threshold, the colouring mode and the surface all live, a sequence track and a
+sorted residue table beside it. Hovering the structure names the residue; clicking one —
+in the viewer, the track or the table — flies the camera to it. It opens in your browser
+when the run produced exactly one report (`--open` / `--no-open` overrides; `--no-report`
+skips it).
+
+Mol* is 4.8 MB, so it is copied once into `<out>/_assets/` and shared by every report
+under that root rather than inlined a hundred times. `--standalone` inlines it instead,
+giving one ~5 MB file that survives being emailed.
+
+Over SSH the script cannot open anything: it prints the path and says so. Forward a port
+and use the web app, or open the report through your editor's remote file browser.
 
 `--setup` defaults to `protein` and takes any of the five tasks, or `all` to run every
 one of them in a single pass — the tessellation and the ESM forward are shared, so all
@@ -170,8 +186,14 @@ chain, and the threshold slider is debounced so a drag does not queue a rebuild 
 The molecular surface is the one expensive rebuild, which is why it is off by default.
 
 Mol*'s own panels are all disabled — the page already has a left rail, a legend and a
-sequence track — and every viewport button is named explicitly in `viewer.js` so a Mol*
-upgrade cannot quietly add one. Reset-camera is the only one kept.
+sequence track — and reset-camera is the only viewport button kept. Not every button has
+a `viewportShow*` option: illumination and XR are reachable only through Mol*'s `config`
+array and both default to visible, so check the viewport after a Mol* upgrade.
+
+`predict_bindingsites.py` inlines this same `viewer.js` into its HTML report, with the
+`export` keywords stripped, because browsers refuse ES modules on `file://` URLs. That
+keeps one Mol* wrapper rather than two that drift apart, and it is why `viewer.js` must
+not grow an `import` — a test asserts it has none.
 
 ---
 
@@ -353,6 +375,7 @@ jbbind/
   core/esm/         ESM-2 embedder + sequence-hash cache
   core/             pipeline, batch, jobs, cache, artifacts
   static/           three-page SPA; viewer.js wraps Mol*, vendored locally
+  report_template.html  the standalone HTML report predict_bindingsites.py fills in
 tools/              the forked voronota script + the pristine original
 models/             20 checkpoints, MANIFEST.json, METRICS.json
 scripts/            model export, fixture generation, the four verification scripts

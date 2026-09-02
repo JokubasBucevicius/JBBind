@@ -24,6 +24,7 @@ let mounting = null;        // in-flight mount(), so a second call awaits the fi
 
 const S = () => window.molstar.lib.structure;
 const T = () => window.molstar.lib.plugin.StateTransforms;
+const PluginConfig = () => window.molstar.lib.plugin.PluginConfig;
 
 /** "#rrggbb" -> the integer Mol* means by a Color. */
 const toColor = (hex) => parseInt(String(hex).replace("#", ""), 16) || 0;
@@ -42,9 +43,13 @@ async function create(container, { background } = {}) {
   viewer = await window.molstar.Viewer.create(container, {
     // No Mol* chrome: the page already has a left rail, a legend and a sequence
     // track, and two sets of controls disagreeing about the same state is worse
-    // than none. Every viewport button is named here rather than left to its
-    // default, so a Mol* upgrade cannot quietly add one; reset-camera is the
-    // one kept, because nothing else in the page can undo a spun camera.
+    // than none. Reset-camera is the one button kept, because nothing else in
+    // the page can undo a spun camera.
+    //
+    // Every button is named, but not all of them have a viewportShow* option:
+    // the illumination and XR buttons are only reachable through `config`, and
+    // both default to visible. A Mol* upgrade that adds a button will show it
+    // here until it is added below, so check the viewport after one.
     layoutIsExpanded: false,
     layoutShowControls: false,
     layoutShowRemoteState: false,
@@ -61,6 +66,10 @@ async function create(container, { background } = {}) {
     viewportShowTrajectoryControls: false,
     viewportShowScreenshotControls: false,
     volumeStreamingDisabled: true,
+    config: [
+      [PluginConfig().Viewport.ShowIllumination, false],
+      [PluginConfig().Viewport.ShowXR, "never"],
+    ],
   });
   plugin = viewer.plugin;
   plugin.representation.structure.themes.colorThemeRegistry.add(scoreThemeProvider());

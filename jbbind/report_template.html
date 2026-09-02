@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+{{MOLSTAR_CSS}}
+<style>
+/* A report is a light document, like the PNG next to it. The web app flips its
+   ramp in dark mode so low scores stay legible on a dark ground; a file you send
+   to someone must not change what a colour means with the reader's OS setting,
+   so this page pins one ramp — the same one the figure and the viewer scripts
+   use — and one light surface. */
+:root {
+  color-scheme: light;
+  --surface-0: #ffffff;
+  --surface-1: #fcfcfb;
+  --surface-2: #f4f4f1;
+  --surface-3: #e9e8e4;
+  --border: #dcdbd5;
+  --border-strong: #c3c2b7;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #78776f;
+  --accent: #2a78d6;
+  --unpredicted: #b8b7b2;
+  --warn-bg: #fdf6e3;
+  --warn-border: #eda100;
+  --radius: 8px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  color: var(--text-primary); background: var(--surface-2);
+}
+.mono { font-family: var(--mono); }
+.muted { color: var(--text-muted); }
+
+header {
+  padding: 16px 22px; background: var(--surface-0);
+  border-bottom: 1px solid var(--border);
+}
+header h1 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+header h1 b { color: var(--accent); font-weight: 700; }
+header .meta { margin-top: 4px; font-size: 12.5px; color: var(--text-secondary); }
+header .meta span + span::before { content: " · "; color: var(--border-strong); }
+
+main {
+  display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr);
+  gap: 14px; padding: 14px; align-items: start;
+}
+@media (max-width: 1000px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.panel {
+  background: var(--surface-0); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.panel h2 {
+  margin: 0; padding: 10px 14px; font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border); background: var(--surface-1);
+}
+
+/* controls */
+.controls {
+  display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+}
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > label { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+select, input[type="range"] { font: inherit; }
+select {
+  padding: 5px 8px; border: 1px solid var(--border-strong);
+  border-radius: 5px; background: var(--surface-0); color: inherit;
+}
+input[type="range"] { width: 160px; accent-color: var(--accent); }
+.radio-row { display: flex; gap: 12px; align-items: center; min-height: 27px; }
+.radio-row label { display: flex; gap: 5px; align-items: center; font-size: 13px; }
+.checks { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.checks label { display: flex; gap: 6px; align-items: center; }
+
+#viewer { position: relative; height: 560px; background: var(--surface-0); }
+@media (max-width: 1000px) { #viewer { height: 420px; } }
+
+.legend {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-secondary);
+}
+.legend .ramp {
+  flex: 1; height: 10px; border-radius: 5px; position: relative;
+  background: linear-gradient(to right, {{RAMP_CSS}});
+}
+.legend .ramp .tick {
+  position: absolute; top: -3px; bottom: -3px; width: 2px;
+  background: var(--text-primary); border-radius: 1px;
+}
+.legend .chip { display: flex; align-items: center; gap: 5px; }
+.legend .chip i {
+  width: 11px; height: 11px; border-radius: 3px;
+  background: var(--unpredicted); display: inline-block;
+}
+
+.banner {
+  margin: 10px 14px; padding: 8px 10px; font-size: 12.5px;
+  background: var(--warn-bg); border-left: 3px solid var(--warn-border);
+  border-radius: 0 4px 4px 0;
+}
+.banner strong { display: block; }
+
+#seqtrack { display: block; width: 100%; cursor: crosshair; }
+.seq-meta { padding: 9px 14px 0; font-size: 11.5px; color: var(--text-muted); }
+#seq-hover { padding: 8px 14px 12px; font-size: 12px; color: var(--text-muted); min-height: 34px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th {
+  position: sticky; top: 0; background: var(--surface-1); text-align: left;
+  padding: 7px 10px; font-weight: 600; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap;
+}
+tbody td { padding: 5px 10px; border-bottom: 1px solid var(--surface-3); }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr.hit td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.bar-cell { display: flex; align-items: center; gap: 7px; }
+.bar { height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.table-scroll { max-height: 460px; overflow: auto; }
+
+footer {
+  padding: 10px 22px 22px; font-size: 11.5px; color: var(--text-muted);
+}
+footer code { font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>JB<b>Bind</b> — {{HEADING}}</h1>
+  <div class="meta" id="meta"></div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="controls" id="controls">
+      <div class="field" id="setup-field">
+        <label for="setup">Prediction task</label>
+        <select id="setup"></select>
+      </div>
+      <div class="field">
+        <label>Label</label>
+        <div class="radio-row" id="labels"></div>
+      </div>
+      <div class="field">
+        <label for="threshold">Threshold — <span class="mono" id="thr-value"></span></label>
+        <input type="range" id="threshold" min="0" max="1" step="0.01">
+      </div>
+      <div class="field">
+        <label for="colormode">Colouring</label>
+        <select id="colormode">
+          <option value="continuous">Continuous score</option>
+          <option value="threshold">Above / below threshold</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Display</label>
+        <div class="checks">
+          <label><input type="checkbox" id="show-sticks" checked> Sticks above threshold</label>
+          <label><input type="checkbox" id="show-surface"> Molecular surface</label>
+        </div>
+      </div>
+    </div>
+    <div id="viewer"></div>
+    <div class="legend">
+      <span class="mono">0</span>
+      <div class="ramp"><div class="tick" id="ramp-tick"></div></div>
+      <span class="mono">1</span>
+      <span class="chip"><i></i> not predicted</span>
+    </div>
+  </section>
+
+  <aside style="display:flex;flex-direction:column;gap:14px">
+    <section class="panel">
+      <h2>Sequence</h2>
+      <div id="warnings"></div>
+      <div class="seq-meta" id="seq-meta"></div>
+      <canvas id="seqtrack"></canvas>
+      <div id="seq-hover">Hover the track or the structure to inspect a residue; click to focus it.</div>
+    </section>
+
+    <section class="panel">
+      <h2 id="table-title">Residues</h2>
+      <div class="table-scroll">
+        <table id="restable">
+          <thead><tr>
+            <th data-sort="i">#</th>
+            <th data-sort="auth">auth</th>
+            <th data-sort="aa">aa</th>
+            <th data-sort="sas">SASA</th>
+            <th data-sort="p">score</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<footer id="footer"></footer>
+
+{{MOLSTAR_JS}}
+
+<script id="jbbind-data" type="application/json">{{DATA}}</script>
+
+<script>
+/* jbbind/static/viewer.js, verbatim but for its `export` keywords, so the report
+   and the web app drive Mol* through exactly the same code. */
+var JBViewer = (function () {
+{{VIEWER_JS}}
+return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
+         setBackground, onHover, onClick, isReady };
+})();
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  var DATA = JSON.parse(document.getElementById("jbbind-data").textContent);
+  var $ = function (id) { return document.getElementById(id); };
+
+  var setup = DATA.setups[0];
+  var label = 0;
+  var threshold = DATA.threshold;
+  var mode = "continuous";
+  var sortKey = "p", sortDir = -1;
+  var hoverResi = null;
+  var paintTimer = null;
+
+  var byResi = new Map();
+  DATA.residues.forEach(function (r) { byResi.set(r.i, r); });
+
+  /* -------------------------------------------------------------- colours */
+
+  // Continuous colours are precomputed by predict_bindingsites.py from the same
+  // OKLab ramp the figure uses, so no ramp is reimplemented here and a residue
+  // is the same colour in the report, the PNG and the viewer scripts.
+  function scoreAt(resi) {
+    var r = byResi.get(resi);
+    return r ? r.p[setup][label] : null;
+  }
+  function colorAt(resi) {
+    var r = byResi.get(resi);
+    if (!r) return DATA.unpredicted;
+    if (mode === "threshold") {
+      return r.p[setup][label] >= threshold ? DATA.rampHi : DATA.rampLo;
+    }
+    return r.c[setup][label];
+  }
+  function isHit(resi) {
+    var p = scoreAt(resi);
+    return p !== null && p >= threshold;
+  }
+
+  /* --------------------------------------------------------------- header */
+
+  function renderHeader() {
+    $("meta").innerHTML = "";
+    [DATA.source + " · chain " + DATA.chain,
+     DATA.arch,
+     DATA.nPredicted + " residues scored",
+     DATA.nUnpredicted + " not predicted",
+     DATA.sequence.length + " in sequence",
+     DATA.generated].forEach(function (t) {
+      var s = document.createElement("span");
+      s.textContent = t;
+      $("meta").appendChild(s);
+    });
+    $("footer").innerHTML =
+      "Scores are per-residue binding probabilities from the <code>" + DATA.arch +
+      "</code> checkpoints. Residues with no prediction — unobserved in the structure, " +
+      "buried, or past ESM-2's 1022-residue limit — are drawn in grey, outside the ramp. " +
+      "Generated by <code>predict_bindingsites.py</code>.";
+
+    var box = $("warnings");
+    box.innerHTML = "";
+    DATA.warnings.forEach(function (w) {
+      var d = document.createElement("div");
+      d.className = "banner";
+      var b = document.createElement("strong");
+      b.textContent = w.code;
+      d.appendChild(b);
+      d.appendChild(document.createTextNode(w.detail || ""));
+      box.appendChild(d);
+    });
+  }
+
+  /* ------------------------------------------------------------- controls */
+
+  function renderControls() {
+    var sel = $("setup");
+    DATA.setups.forEach(function (name) {
+      var o = document.createElement("option");
+      o.value = name;
+      o.textContent = name + " — " + DATA.labels[name].join(" / ");
+      sel.appendChild(o);
+    });
+    sel.value = setup;
+    $("setup-field").style.display = DATA.setups.length > 1 ? "" : "none";
+    sel.addEventListener("change", function () {
+      setup = sel.value; label = 0; renderLabels(); repaint();
+    });
+
+    $("threshold").value = String(threshold);
+    $("threshold").addEventListener("input", function () {
+      threshold = Number($("threshold").value);
+      repaint();
+    });
+    $("colormode").addEventListener("change", function () {
+      mode = $("colormode").value; repaint();
+    });
+    $("show-sticks").addEventListener("change", repaint);
+    $("show-surface").addEventListener("change", repaint);
+
+    $("restable").querySelector("thead").addEventListener("click", function (e) {
+      var th = e.target.closest("th[data-sort]");
+      if (!th) return;
+      var key = th.dataset.sort;
+      if (key === sortKey) sortDir = -sortDir;
+      else { sortKey = key; sortDir = key === "p" ? -1 : 1; }
+      renderTable();
+    });
+
+    var track = $("seqtrack");
+    track.addEventListener("mousemove", onTrackMove);
+    track.addEventListener("mouseleave", function () { hoverResi = null; drawTrack(); });
+    track.addEventListener("click", function () { if (hoverResi) focus(hoverResi); });
+    window.addEventListener("resize", function () { drawTrack(); JBViewer.resize(); });
+
+    renderLabels();
+  }
+
+  function renderLabels() {
+    var box = $("labels");
+    box.innerHTML = "";
+    DATA.labels[setup].forEach(function (name, i) {
+      var l = document.createElement("label");
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = "label"; r.value = String(i); r.checked = i === label;
+      r.addEventListener("change", function () { label = i; repaint(); });
+      l.appendChild(r);
+      l.appendChild(document.createTextNode(name));
+      box.appendChild(l);
+    });
+  }
+
+  /* -------------------------------------------------------------- viewer */
+
+  function repaint() {
+    $("thr-value").textContent = threshold.toFixed(2);
+    $("ramp-tick").style.left = (threshold * 100) + "%";
+    drawTrack();
+    renderTable();
+    clearTimeout(paintTimer);
+    paintTimer = setTimeout(paintViewer, 120);
+  }
+
+  function paintViewer() {
+    clearTimeout(paintTimer);
+    if (!JBViewer.isReady()) return;
+    JBViewer.paint({
+      colorOf: colorAt,
+      isHit: isHit,
+      showSurface: $("show-surface").checked,
+      showSticks: $("show-sticks").checked,
+      unpredicted: DATA.unpredicted
+    })["catch"](function (err) { console.error("could not repaint the viewer", err); });
+  }
+
+  function focus(resi) {
+    hoverResi = resi;
+    describe(resi);
+    drawTrack();
+    JBViewer.focusResidue(resi);
+  }
+
+  /* ------------------------------------------------------ sequence track */
+
+  function drawTrack() {
+    var canvas = $("seqtrack");
+    var dpr = window.devicePixelRatio || 1;
+    var width = canvas.clientWidth || canvas.parentElement.clientWidth || 360;
+    var height = 86;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.height = height + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    var n = DATA.sequence.length;
+    var pad = 8, bandTop = 12, bandH = 34;
+    var cellW = (width - pad * 2) / n;
+
+    for (var i = 0; i < n; i++) {
+      var r = byResi.get(i + 1);
+      ctx.fillStyle = colorAt(i + 1);
+      var x = pad + i * cellW;
+      ctx.fillRect(x, bandTop, Math.max(cellW, 0.8), bandH);
+      if (!r) {
+        // Hatch "no data" so it stays distinct from "low score" even for a
+        // reader who cannot separate the greys.
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x, bandTop + bandH);
+        ctx.lineTo(x + Math.max(cellW, 2), bandTop);
+        ctx.stroke();
+      }
+    }
+
+    ctx.strokeStyle = "#dcdbd5";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pad, bandTop, width - pad * 2, bandH);
+
+    ctx.fillStyle = "#78776f";
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.textBaseline = "top";
+    var step = niceStep(n, Math.floor((width - 16) / 52));
+    for (var k = step; k <= n; k += step) {
+      var tx = pad + (k - 0.5) * cellW;
+      ctx.fillRect(tx, bandTop + bandH, 1, 4);
+      ctx.fillText(String(k), Math.min(tx + 3, width - 26), bandTop + bandH + 5);
+    }
+
+    if (hoverResi) {
+      var hx = pad + (hoverResi - 1) * cellW;
+      ctx.strokeStyle = "#0b0b0b";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(hx - 0.5, bandTop - 3, Math.max(cellW, 2) + 1, bandH + 6);
+    }
+  }
+
+  function niceStep(n, targetTicks) {
+    var raw = Math.max(1, n / Math.max(1, targetTicks));
+    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var ms = [1, 2, 5, 10];
+    for (var i = 0; i < ms.length; i++) if (raw <= ms[i] * mag) return ms[i] * mag;
+    return 10 * mag;
+  }
+
+  function onTrackMove(e) {
+    var canvas = $("seqtrack");
+    var rect = canvas.getBoundingClientRect();
+    var pad = 8, n = DATA.sequence.length;
+    var cellW = (rect.width - pad * 2) / n;
+    var i = Math.floor((e.clientX - rect.left - pad) / cellW) + 1;
+    if (i < 1 || i > n) { hoverResi = null; drawTrack(); return; }
+    hoverResi = i;
+    describe(i);
+    drawTrack();
+  }
+
+  function describe(i) {
+    var r = byResi.get(i);
+    var aa = DATA.sequence.charAt(i - 1) || "?";
+    $("seq-hover").textContent = r
+      ? aa + i + " (auth " + r.ch + "/" + r.auth + r.ic + ") · score " +
+        r.p[setup][label].toFixed(3) + " · SASA " +
+        (r.sas === null ? "—" : r.sas.toFixed(1)) + " Å²"
+      : aa + i + " · not predicted (unobserved in the structure, buried, or past the ESM limit)";
+  }
+
+  /* --------------------------------------------------------------- table */
+
+  var LIMIT = 400;
+
+  function renderTable() {
+    var tbody = $("restable").querySelector("tbody");
+    tbody.innerHTML = "";
+    var rows = DATA.residues.slice().sort(function (a, b) {
+      var get = function (r) {
+        return sortKey === "p" ? r.p[setup][label]
+          : sortKey === "aa" ? r.aa
+          : sortKey === "sas" ? (r.sas === null ? -1 : r.sas)
+          : sortKey === "auth" ? r.auth : r.i;
+      };
+      var x = get(a), y = get(b);
+      return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
+    });
+
+    var ths = $("restable").querySelectorAll("th[data-sort]");
+    for (var t = 0; t < ths.length; t++) {
+      var base = ths[t].textContent.replace(/[ ▲▼]+$/, "");
+      ths[t].textContent = ths[t].dataset.sort === sortKey
+        ? base + " " + (sortDir < 0 ? "▼" : "▲") : base;
+    }
+
+    var nHit = 0;
+    DATA.residues.forEach(function (r) { if (r.p[setup][label] >= threshold) nHit++; });
+    $("table-title").textContent =
+      "Residues — " + nHit + " of " + DATA.residues.length + " at or above " +
+      threshold.toFixed(2);
+
+    var frag = document.createDocumentFragment();
+    rows.slice(0, LIMIT).forEach(function (r) {
+      var p = r.p[setup][label];
+      var tr = document.createElement("tr");
+      if (p >= threshold) tr.className = "hit";
+      tr.addEventListener("mouseenter", function () { hoverResi = r.i; drawTrack(); });
+      tr.addEventListener("click", function () { focus(r.i); });
+      [String(r.i), r.auth + r.ic, r.aa,
+       r.sas === null ? "—" : r.sas.toFixed(1)].forEach(function (text) {
+        var td = document.createElement("td");
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      var td = document.createElement("td");
+      var cell = document.createElement("div");
+      cell.className = "bar-cell";
+      var bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.width = Math.max(2, p * 46) + "px";
+      bar.style.background = colorAt(r.i);
+      var num = document.createElement("span");
+      num.textContent = p.toFixed(3);
+      cell.appendChild(bar);
+      cell.appendChild(num);
+      td.appendChild(cell);
+      tr.appendChild(td);
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+
+    if (rows.length > LIMIT) {
+      var tr2 = document.createElement("tr");
+      var td2 = document.createElement("td");
+      td2.colSpan = 5;
+      td2.className = "muted";
+      td2.style.textAlign = "center";
+      td2.style.padding = "10px";
+      td2.textContent = "showing the top " + LIMIT + " of " + rows.length +
+        " — the CSV next to this file has them all";
+      tr2.appendChild(td2);
+      tbody.appendChild(tr2);
+    }
+  }
+
+  /* ---------------------------------------------------------------- boot */
+
+  renderHeader();
+  renderControls();
+  $("seq-meta").textContent =
+    DATA.nPredicted + " predicted · " + DATA.nUnpredicted + " not predicted · " +
+    DATA.sequence.length + " in sequence";
+  repaint();
+
+  JBViewer.mount($("viewer"), { background: "#ffffff" }).then(function () {
+    JBViewer.onHover(function (resi) {
+      if (resi === hoverResi) return;
+      hoverResi = resi;
+      if (resi !== null) describe(resi);
+      drawTrack();
+    });
+    JBViewer.onClick(focus);
+    return JBViewer.loadStructure(DATA.receptorPdb);
+  }).then(function () {
+    return paintViewer();
+  }).then(function () {
+    JBViewer.resetCamera();
+  })["catch"](function (err) {
+    console.error("viewer failed to start", err);
+    $("viewer").innerHTML =
+      '<p style="padding:20px;color:#78776f">The 3D viewer failed to start — ' +
+      'see the browser console. Everything else on this page still works.</p>';
+  });
+})();
+</script>
+
+</body>
+</html>
