@@ -33,10 +33,13 @@ the examples above.
 from __future__ import annotations
 
 import argparse
+import functools
+import http.server
 import json
 import os
 import re
 import shutil
+import socketserver
 import sys
 import time
 import webbrowser
@@ -534,6 +537,74 @@ def write_report(result, setups, threshold: float, name: str, out_dir: Path,
     return path
 
 
+# --------------------------------------------------------------------------- opening
+
+class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+    """SimpleHTTPRequestHandler without the per-request logging."""
+
+    def log_message(self, *args):
+        pass
+
+
+def needs_http() -> bool:
+    """Whether a ``file://`` URL would be useless here.
+
+    On a workstation it is fine. On a remote host it is not: ``$BROWSER`` under
+    VS Code Remote is a helper that runs ``code --openExternal``, which opens
+    the URL on *your laptop*, where ``/home/you/predictions/...`` does not
+    exist. Serving over ``http://127.0.0.1`` works instead — VS Code forwards
+    the port automatically, and ``ssh -L`` reaches it too.
+    """
+    if sys.platform in ("darwin", "win32"):
+        return False
+    return not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+
+def open_file(report: Path) -> None:
+    if not webbrowser.open(report.resolve().as_uri()):
+        print(f"      no browser here — open {report} yourself", file=sys.stderr)
+
+
+def serve_and_open(root: Path, reports: list[Path], port: int) -> None:
+    """Serve ``root`` on localhost, open the report, and block until Ctrl+C.
+
+    Blocking is the point: the page fetches Mol* from ``_assets/`` on load, and
+    a reload needs the server still there. A batch run opens the directory
+    listing rather than one tab per chain.
+    """
+    root = root.resolve()
+    handler = functools.partial(_QuietHandler, directory=str(root))
+
+    class Server(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
+
+    try:
+        httpd = Server(("127.0.0.1", port), handler)
+    except OSError as exc:
+        print(f"      could not bind 127.0.0.1:{port} ({exc}) — "
+              f"open {reports[0]} yourself", file=sys.stderr)
+        return
+
+    path = (reports[0].resolve().relative_to(root).as_posix()
+            if len(reports) == 1 else "")
+    # The bound port, not the requested one: --port 0 means "pick a free one".
+    url = f"http://127.0.0.1:{httpd.server_address[1]}/{path}"
+
+    bound = httpd.server_address[1]
+    print(f"\n  serving {root}/ at {url}")
+    if not webbrowser.open(url):
+        print("  (no browser handler here — open that URL yourself; over plain SSH, "
+              f"forward it first: ssh -L {bound}:127.0.0.1:{bound} <host>)")
+    print("  Ctrl+C to stop the server. The page needs it until it has loaded.")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\n  stopped")
+    finally:
+        httpd.server_close()
+
+
 # --------------------------------------------------------------------------- driver
 
 def build(cfg: Settings, arch: str, threshold: float):
@@ -643,6 +714,14 @@ def main(argv=None) -> int:
                    default=None,
                    help="open the report in a browser (default: only when a single "
                         "report was written)")
+    p.add_argument("--serve", dest="serve", action=argparse.BooleanOptionalAction,
+                   default=None,
+                   help="serve the reports over http://127.0.0.1 and block, instead "
+                        "of opening a file:// URL (default: on when there is no local "
+                        "display, because a remote file:// path means nothing to the "
+                        "browser on your machine)")
+    p.add_argument("--port", type=int, default=8010,
+                   help="port for --serve (default 8010; 0 picks a free one)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -719,14 +798,11 @@ def main(argv=None) -> int:
     # otherwise spray a hundred tabs.
     want_open = args.open_report if args.open_report is not None else len(reports) == 1
     if want_open and reports:
-        for path in reports:
-            if not webbrowser.open(path.resolve().as_uri()):
-                # Headless compute node, or no browser on this host. The path is
-                # already printed above; over SSH it is the forwarded editor that
-                # opens it, not us.
-                print("      (no browser available here — open the report yourself)",
-                      file=sys.stderr)
-                break
+        if args.serve if args.serve is not None else needs_http():
+            serve_and_open(out_root, reports, args.port)
+        else:
+            for path in reports:
+                open_file(path)
 
     if failed:
         print(f"\n{failed} target(s) failed", file=sys.stderr)

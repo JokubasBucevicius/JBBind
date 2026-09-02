@@ -131,8 +131,15 @@ Mol* is 4.8 MB, so it is copied once into `<out>/_assets/` and shared by every r
 under that root rather than inlined a hundred times. `--standalone` inlines it instead,
 giving one ~5 MB file that survives being emailed.
 
-Over SSH the script cannot open anything: it prints the path and says so. Forward a port
-and use the web app, or open the report through your editor's remote file browser.
+**Opening it from a remote host.** A `file://` URL is useless there: under VS Code Remote
+`$BROWSER` is a helper that runs `code --openExternal`, which opens the URL on *your*
+machine, where `/home/you/predictions/…` does not exist. So when there is no local display
+the script serves the output directory on `http://127.0.0.1:8010` instead and opens that —
+VS Code forwards the port by itself, and `ssh -L 8010:127.0.0.1:8010 <host>` reaches it
+from a plain terminal. It blocks while serving, because the page fetches Mol* from
+`_assets/` on load and a reload needs the server still up; Ctrl+C stops it. `--port`
+changes the port (`0` picks a free one) and `--serve` / `--no-serve` overrides the
+detection.
 
 `--setup` defaults to `protein` and takes any of the five tasks, or `all` to run every
 one of them in a single pass — the tessellation and the ESM forward are shared, so all
