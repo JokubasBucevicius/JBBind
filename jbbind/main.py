@@ -15,6 +15,7 @@ from fastapi import Body, FastAPI, File, Form, HTTPException, Query, Request, Up
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
                                PlainTextResponse, Response, StreamingResponse)
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 from .core.artifacts import (predictions_csv, predictions_pdb, pymol_selection,
                             slug)
@@ -373,7 +374,15 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     # ------------------------------------------------------------------ SPA
 
     if cfg.static_dir.exists():
-        app.mount("/static", StaticFiles(directory=cfg.static_dir), name="static")
+        # gzip only the static mount. Mol* is 4.8 MB of JavaScript and compresses
+        # to about a quarter of that, which is the difference between a tab that
+        # opens and one that hangs when the app is reached over an SSH tunnel.
+        # Wrapping the sub-app rather than adding app-wide middleware keeps it away
+        # from /api/v1/jobs/{id}/events, where buffering would stall the SSE stream.
+        app.mount("/static",
+                  GZipMiddleware(StaticFiles(directory=cfg.static_dir),
+                                 minimum_size=1024),
+                  name="static")
 
         @app.get("/")
         def index():

@@ -92,6 +92,9 @@ port. In VS Code, open the **Ports** panel → *Forward a Port* → `8000`, then
 forwarded URL. From a plain terminal: `ssh -L 8000:127.0.0.1:8000 <host>`.
 
 First start takes 30–60 s while ESM-2 loads; `/readyz` reports `degraded` until it is up.
+The page itself opens in about 30 KB — Mol* is 4.8 MB and is fetched by `viewer.js` only
+when a structure is first shown, and `/static` is gzipped, so opening the app over a
+forwarded port does not wait for a viewer that may never be used.
 
 ---
 

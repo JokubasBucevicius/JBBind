@@ -274,3 +274,32 @@ def test_predict_js_fetches_the_receptor_rather_than_reading_the_result():
     js = (Path(__file__).parents[1] / "jbbind/static/predict.js").read_text()
     assert "result.receptor_pdb" not in js
     assert "artifacts/${state.jobId}/receptor.pdb" in js
+
+
+# ------------------------------------------------------------- opening cost
+# Mol* is 4.8 MB. Reached over an SSH tunnel, anything that puts it in the path
+# of first paint leaves the tab on "loading" until the whole bundle arrives.
+
+def test_static_assets_are_compressed(client):
+    c, _, _ = client
+    r = c.get("/static/vendor/molstar.js", headers={"Accept-Encoding": "gzip"})
+    assert r.status_code == 200
+    assert r.headers.get("content-encoding") == "gzip"
+
+
+def test_api_responses_are_not_compressed(client):
+    """gzip is mounted on /static alone.
+
+    Applying it app-wide would also wrap /api/v1/jobs/{id}/events, where
+    buffering stalls the SSE stream the Predict page waits on.
+    """
+    c, _, _ = client
+    r = c.get("/api/v1/meta", headers={"Accept-Encoding": "gzip"})
+    assert "content-encoding" not in r.headers
+
+
+def test_index_does_not_block_first_paint_on_molstar():
+    html = (Path(__file__).parents[1] / "jbbind/static/index.html").read_text()
+    assert "vendor/molstar.js" not in html          # viewer.js fetches it on first use
+    js = (Path(__file__).parents[1] / "jbbind/static/viewer.js").read_text()
+    assert "/static/vendor/molstar.js" in js

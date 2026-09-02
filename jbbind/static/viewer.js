@@ -22,6 +22,38 @@ let paintQueue = Promise.resolve(); // paints run one at a time, never interleav
 let handlers = { hover: null, click: null };
 let mounting = null;        // in-flight mount(), so a second call awaits the first
 
+const MOLSTAR_SRC = "/static/vendor/molstar.js";
+let molstarReady = null;
+
+/**
+ * Fetch the Mol* bundle, once, on first use.
+ *
+ * It is 4.8 MB. Loading it from a <script> in <head> blocks first paint on the
+ * whole download, which over an SSH tunnel means the tab sits on "loading" for
+ * as long as that takes — for a page most of whose controls do not need it. It
+ * is pulled in when a structure is first shown instead.
+ *
+ * The standalone HTML report already carries its own copy inline, so there
+ * window.molstar is set before this runs and it resolves immediately.
+ */
+function loadMolstar(src = MOLSTAR_SRC) {
+  if (window.molstar) return Promise.resolve();
+  if (!molstarReady) {
+    molstarReady = new Promise((resolve, reject) => {
+      const tag = document.createElement("script");
+      tag.src = src;
+      tag.onload = () => (window.molstar ? resolve()
+        : reject(new Error("Mol* loaded but defined nothing")));
+      tag.onerror = () => {
+        molstarReady = null;                    // let a later attempt retry
+        reject(new Error(`could not load the 3D viewer from ${src}`));
+      };
+      document.head.appendChild(tag);
+    });
+  }
+  return molstarReady;
+}
+
 const S = () => window.molstar.lib.structure;
 const T = () => window.molstar.lib.plugin.StateTransforms;
 const PluginConfig = () => window.molstar.lib.plugin.PluginConfig;
@@ -35,11 +67,17 @@ export const isReady = () => plugin !== null;
 
 /** Create the plugin inside `container`. Idempotent; safe to call concurrently. */
 export function mount(container, options = {}) {
-  if (!mounting) mounting = create(container, options);
+  if (!mounting) {
+    mounting = create(container, options).catch((err) => {
+      mounting = null;                          // a retry gets a fresh attempt
+      throw err;
+    });
+  }
   return mounting;
 }
 
-async function create(container, { background } = {}) {
+async function create(container, { background, src } = {}) {
+  await loadMolstar(src);
   viewer = await window.molstar.Viewer.create(container, {
     // No Mol* chrome: the page already has a left rail, a legend and a sequence
     // track, and two sets of controls disagreeing about the same state is worse
