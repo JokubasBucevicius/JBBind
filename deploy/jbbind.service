@@ -1,0 +1,20 @@
+[Unit]
+Description=JBBind web app
+Documentation=https://github.com/JokubasBucevicius/JBBind
+After=network.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h/JBBind
+# voronota must be on PATH: the tessellation runs as a subprocess.
+Environment=PATH=%h/voronota_1.29.4781/expansion_js:%h/miniconda3/bin:/usr/local/bin:/usr/bin:/bin
+# No --reload: a file watcher restarting under a live prediction is not wanted here.
+ExecStart=%h/miniconda3/bin/python -m uvicorn jbbind.main:app \
+          --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+# ESM-2 is ~2.6 GB and the first start is slow; do not call that a failure.
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

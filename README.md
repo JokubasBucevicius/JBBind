@@ -91,6 +91,11 @@ make serve                                             # http://127.0.0.1:8000
 port. In VS Code, open the **Ports** panel → *Forward a Port* → `8000`, then open the
 forwarded URL. From a plain terminal: `ssh -L 8000:127.0.0.1:8000 <host>`.
 
+Or run it as a service so it is simply always up — `deploy/jbbind.service`, installed
+with `systemctl --user enable --now jbbind`; see `deploy/README.md`. Worth doing if the
+browser is on another machine: `make serve` dies with the terminal, and an SSH forward
+that outlives it does not fail but hangs, leaving a tab loading forever.
+
 First start takes 30–60 s while ESM-2 loads; `/readyz` reports `degraded` until it is up.
 The page itself opens in about 30 KB — Mol* is 4.8 MB and is fetched by `viewer.js` only
 when a structure is first shown, and `/static` is gzipped, so opening the app over a
@@ -413,6 +418,7 @@ tools/              the forked voronota script + the pristine original
 models/             20 checkpoints, MANIFEST.json, METRICS.json
 scripts/            model export, fixture generation, the four verification scripts
 tests/              parity, normalization, API, CLI — no research repo needed
+deploy/             systemd user unit for running the app as a service
 ```
 
 ### Code lifted from the research repo
