@@ -4,6 +4,10 @@ RESEARCH ?= /home/jokubasb/protein_protein
 VORONOTA ?= /home/jokubasb/voronota_1.29.4781/expansion_js
 SIF ?= jbbind.sif
 PORT ?= 8000
+# Loopback by default. The browser is usually on another machine, reached by an
+# SSH tunnel; HOST=0.0.0.0 exposes the app on the LAN instead, which also needs
+# port $(PORT) opened in firewalld.
+HOST ?= 127.0.0.1
 
 export PATH := $(PATH):$(VORONOTA)
 
@@ -15,8 +19,10 @@ help:
 # ------------------------------------------------------------------ develop
 
 .PHONY: serve
-serve: ## run the web app locally on $(PORT)
-	$(PY) -m uvicorn jbbind.main:app --host 127.0.0.1 --port $(PORT) --reload
+serve: ## run the web app on $(HOST):$(PORT)
+	@echo "JBBind on http://$(HOST):$(PORT)  (first start takes ~30 s while ESM-2 loads)"
+	@echo "browser on another machine?  ssh -N -L $(PORT):127.0.0.1:$(PORT) $$(whoami)@$$(hostname -I | awk '{print $$1}')"
+	$(PY) -m uvicorn jbbind.main:app --host $(HOST) --port $(PORT) --reload
 
 .PHONY: predict
 predict: ## one chain end to end, e.g. make predict TARGET=3hdd_A SETUP=dna_rna
