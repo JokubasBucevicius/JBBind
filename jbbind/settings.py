@@ -69,7 +69,7 @@ class UserSettings:
 
     # Inference
     device: str = "auto"                  # auto | cpu | cuda
-    esm_long_seq_mode: str = "truncate"   # truncate (training parity) | tile
+    esm_long_seq_mode: str = "tile"       # tile (whole chain) | truncate (training parity)
     rcsb_assembly: int | None = None      # None = asymmetric unit
 
     # Decision

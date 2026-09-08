@@ -79,11 +79,11 @@ function render() {
           (v) => { dirty.device = v; markDirty(); })),
 
       row("Long chains",
-        "ESM-2 was run with a 1022-token limit when the training embeddings were " +
-        "generated. `truncate` reproduces that exactly; `tile` covers the whole chain " +
-        "with overlapping windows but is out of distribution.",
-        select([["truncate", "truncate at 1022 (training parity)"],
-                ["tile", "tile with overlapping windows (experimental)"]],
+        "ESM-2 takes 1022 tokens at a time. `tile` covers the whole chain with " +
+        "overlapping windows, so chains past 1022 residues are scored end to end; " +
+        "`truncate` stops at 1022, reproducing how the training embeddings were made.",
+        select([["tile", "tile with overlapping windows (whole chain)"],
+                ["truncate", "truncate at 1022 (training parity)"]],
           s.esm_long_seq_mode, (v) => { dirty.esm_long_seq_mode = v; markDirty(); })),
 
       row("RCSB source",

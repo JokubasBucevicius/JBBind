@@ -5,8 +5,9 @@ with their SASA, the score along the chain, and the ranked score curve.
 
 Three things it is deliberately careful about:
 
-* **Unscored residues are drawn, in grey, outside the ramp.** Buried residues
-  and anything past ESM-2's 1022-token limit have no prediction. Omitting them
+* **Unscored residues are drawn, in grey, outside the ramp.** Buried residues,
+  and any tail past ESM-2's 1022-token limit under ``truncate``, have no
+  prediction. Omitting them
   from the 3D trace would read as a break in the chain; colouring them pale blue
   would read as a confident negative.
 * **The colour axis is pinned to 0-1**, not to the chain's own min and max, so
@@ -64,7 +65,7 @@ def ca_coordinates(receptor_pdb: str) -> dict[int, np.ndarray]:
 def _draw_structure(ax, xyz, order, scores, title, azim):
     """CA trace in 3D, residues coloured by score.
 
-    Unscored residues (buried, or past ESM's 1022-token limit) are drawn in the
+    Unscored residues (buried, or past ESM's 1022-token limit under ``truncate``) are drawn in the
     out-of-ramp grey rather than omitted: a hole in the trace would read as a gap in the
     chain, and a pale blue dot would read as a confident negative.
     """
