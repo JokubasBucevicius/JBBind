@@ -4,8 +4,8 @@
  * training runs' metrics.json + predictions.npz (curves downsampled to ~200 points).
  *
  * Colour: the four architectures occupy fixed categorical slots 1-4 (never cycled, never
- * rank-dependent), validated on the adjacent pairlist in both modes by
- * scripts/validate_palette.py. Two light-mode slots sit under 3:1 on the light surface, so
+ * rank-dependent), validated on the adjacent pairlist in both modes.
+ * Two light-mode slots sit under 3:1 on the light surface, so
  * the relief rule applies and every chart here ships direct labels AND a table view.
  */
 

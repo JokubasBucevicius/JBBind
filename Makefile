@@ -46,34 +46,10 @@ export-models: ## copy checkpoints + build MANIFEST.json / METRICS.json from the
 fixtures: ## regenerate the golden parity fixtures (needs the research environment)
 	cd $(RESEARCH) && $(PY) $(CURDIR)/scripts/make_parity_fixtures.py
 
-# ------------------------------------------------------------- verification
-
-.PHONY: verify
-verify: verify-tool verify-renumbering ## run every verification against the research data
-
-.PHONY: verify-tool
-verify-tool: ## Tier 3a: forked voronota script reproduces the training features exactly
-	$(PY) scripts/verify_tool_reproduction.py --n 40
-
-.PHONY: verify-renumbering
-verify-renumbering: ## Tier 3c: SEQRES renumbering matches the training numbering
-	$(PY) scripts/check_renumbering.py --n 200 --workers 8
-
-.PHONY: verify-provenance
-verify-provenance: ## Tier 3b: how much RCSB-vs-PPI3D provenance shifts the predictions
-	$(PY) scripts/verify_provenance_shift.py --n 50
-
 .PHONY: diff-tool
 diff-tool: ## audit the delta between the forked voronota script and the original
 	@diff -u tools/reference/extract-and-describe-receptor-protein.orig \
 	         tools/describe-receptor-chain || true
-
-.PHONY: palette
-palette: ## re-validate the chart palette (colour is computable — compute it)
-	@echo "--- architecture series, light (adjacent pairlist: bars, lines)"
-	@$(PY) scripts/validate_palette.py "#2a78d6,#eb6834,#1baf7a,#eda100" --mode light
-	@echo "--- architecture series, dark"
-	@$(PY) scripts/validate_palette.py "#3987e5,#d95926,#199e70,#c98500" --mode dark
 
 # ------------------------------------------------------------- containers
 

@@ -38,7 +38,6 @@ chains sampled                  200
   training_defect             10
 AGREEMENT ON SOUND CHAINS       190/190 = 100.0%
   (of which 1 needed chain re-resolution: PPI3D subunit labels are not RCSB chain labels)
-full results -> /tmp/claude-503000028/-home-jokubasb/465a4035-0d13-4c9b-9c02-260b85ea9158/scratchpad/tier3c2.json
 ```
 
 ## P0.5 — gnn_mlp embedder recovery
