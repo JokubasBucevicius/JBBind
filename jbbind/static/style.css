@@ -1,8 +1,7 @@
 /* JBBind — design tokens and layout.
  *
- * Colour roles come from the dataviz reference palette and were validated with
- * scripts/validate_palette.py (a Python port of the skill's validator, verified to
- * reproduce its documented numbers):
+ * Colour roles come from the dataviz reference palette and were validated for
+ * contrast and colour-vision separation:
  *
  *   - Architecture series (slots 1-4, fixed order, never cycled): PASS in both modes on
  *     the adjacent pairlist — worst CVD dE 9.1 light / 8.4 dark, worst normal-vision
@@ -334,6 +333,10 @@ table.residues td {
 table.residues tr:hover td { background: var(--surface-2); }
 table.residues tr.hit td:first-child { box-shadow: inset 3px 0 var(--accent); }
 .bar-cell { display: flex; align-items: center; gap: 6px; }
+/* The label the radio selected: the one driving the colours and the threshold. */
+table.residues th.active-label,
+table.residues td.active-label { box-shadow: inset 2px 0 var(--accent); }
+table.residues td.active-label span { font-weight: 600; color: var(--text-primary); }
 .bar-cell .bar {
   height: 8px; border-radius: 4px; min-width: 2px;
   background: var(--accent);

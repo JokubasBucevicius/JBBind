@@ -1,8 +1,8 @@
 """API contract tests, with the pipeline mocked.
 
 Deliberately does not exercise voronota, ESM or the network — those are covered by the
-parity tests and the verification scripts. What is checked here is the shape of the HTTP
-surface: status codes, error mapping, artifact rendering, and settings validation.
+parity tests. What is checked here is the shape of the HTTP surface: status codes, error
+mapping, artifact rendering, and settings validation.
 """
 
 from __future__ import annotations
@@ -274,6 +274,34 @@ def test_predict_js_fetches_the_receptor_rather_than_reading_the_result():
     js = (Path(__file__).parents[1] / "jbbind/static/predict.js").read_text()
     assert "result.receptor_pdb" not in js
     assert "artifacts/${state.jobId}/receptor.pdb" in js
+
+
+# ---------------------------------------------------------- every label shown
+# The score columns are built from the selected setup's label_names, so a task with
+# two labels shows two of them. A single hardcoded `score` header would silently
+# collapse that back to one and no Python test would notice.
+
+ROOT = Path(__file__).parents[1]
+
+
+@pytest.mark.parametrize("page", ["jbbind/static/index.html", "jbbind/report_template.html"])
+def test_residue_table_has_no_hardcoded_score_column(page):
+    html = (ROOT / page).read_text()
+    assert 'data-sort="p"' not in html
+    assert '<th data-sort="sas">SASA</th>' in html
+
+
+@pytest.mark.parametrize("script", ["jbbind/static/predict.js", "jbbind/report_template.html"])
+def test_score_columns_are_generated_per_label(script):
+    src = (ROOT / script).read_text()
+    assert "renderScoreColumns" in src
+    assert 'data-label' in src
+
+
+def test_esm_defaults_to_tiling_so_long_chains_are_scored_end_to_end():
+    from jbbind.settings import Settings, UserSettings
+    assert UserSettings().esm_long_seq_mode == "tile"
+    assert Settings().max_residues >= 5000
 
 
 # ------------------------------------------------------------- opening cost

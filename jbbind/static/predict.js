@@ -3,7 +3,7 @@
 import { api, cssVar, el, fmt, rampSteps, scoreColor, state } from "/static/app.js";
 import * as viewer from "/static/viewer.js";
 
-let sortKey = "p";
+let sortKey = "p0";
 let sortDir = -1;
 let hoverResi = null;
 
@@ -11,6 +11,7 @@ const $ = (id) => document.getElementById(id);
 
 const view = {
   get setup() { return $("setup").value; },
+  get labels() { return state.meta?.setups?.[$("setup").value]?.label_names || []; },
   get label() { return Number(document.querySelector('input[name="label"]:checked')?.value ?? 0); },
   get threshold() { return Number($("threshold").value); },
   get colorMode() { return $("colormode").value; },
@@ -50,7 +51,7 @@ export function init() {
     if (!th) return;
     const key = th.dataset.sort;
     if (key === sortKey) sortDir = -sortDir;
-    else { sortKey = key; sortDir = key === "p" ? -1 : 1; }
+    else { sortKey = key; sortDir = key.startsWith("p") ? -1 : 1; }
     renderTable();
   });
 
@@ -112,6 +113,7 @@ function renderLabels() {
   const setup = view.setup;
   const labels = state.meta?.setups?.[setup]?.label_names || [];
   $("setup-hint").textContent = state.meta?.setups?.[setup]?.hint || "";
+  renderScoreColumns(labels);
 
   const box = $("labels");
   box.replaceChildren();
@@ -126,6 +128,21 @@ function renderLabels() {
     ));
   });
   updateThresholdHint();
+}
+
+/** One sortable score column per label of the selected task. The radio above
+ *  picks which of them drives the colouring, the threshold and the downloads;
+ *  the table shows them all so a residue can be read across its labels. */
+function renderScoreColumns(labels) {
+  const tr = $("restable").querySelector("thead tr");
+  for (const th of tr.querySelectorAll("th[data-label]")) th.remove();
+  labels.forEach((name, i) => {
+    tr.append(el("th", { "data-sort": `p${i}`, "data-label": String(i) }, name));
+  });
+  if (!/^p\d+$/.test(sortKey) || Number(sortKey.slice(1)) >= labels.length) {
+    sortKey = "p0";
+    sortDir = -1;
+  }
 }
 
 function updateThresholdHint() {
@@ -428,10 +445,13 @@ function describeResidue(i) {
   if (!result) return;
   const r = byResi()[i];
   const aa = result.sequence[i - 1] ?? "?";
+  const scores = view.labels
+    .map((name, k) => `${name} ${fmt.n(r?.p[view.setup][k], 3)}`)
+    .join(" · ");
   $("seq-hover").textContent = r
-    ? `${aa}${i} (auth ${r.chain}/${r.auth}${r.icode}) · score ${fmt.n(r.p[view.setup][view.label], 3)}` +
+    ? `${aa}${i} (auth ${r.chain}/${r.auth}${r.icode}) · ${scores}` +
       ` · SASA ${r.sas === null ? "—" : fmt.n(r.sas, 1)} Å²`
-    : `${aa}${i} · not predicted (unobserved in the structure, buried, or past the ESM limit)`;
+    : `${aa}${i} · not predicted (unobserved in the structure, or buried)`;
 }
 
 /* ------------------------------------------------------------------ table */
@@ -442,9 +462,9 @@ function renderTable() {
   const result = state.result;
   if (!result) return;
 
-  const setup = view.setup, label = view.label;
+  const setup = view.setup, label = view.label, labels = view.labels;
   const rows = [...result.residues].sort((a, b) => {
-    const get = (r) => (sortKey === "p" ? r.p[setup][label]
+    const get = (r) => (/^p\d+$/.test(sortKey) ? r.p[setup][Number(sortKey.slice(1))]
       : sortKey === "aa" ? r.aa
       : sortKey === "sas" ? (r.sas ?? -1)
       : sortKey === "auth" ? r.auth : r.i);
@@ -455,6 +475,7 @@ function renderTable() {
   for (const th of $("restable").querySelectorAll("th[data-sort]")) {
     const base = th.textContent.replace(/[ ▲▼]+$/, "");
     th.textContent = th.dataset.sort === sortKey ? `${base} ${sortDir < 0 ? "▼" : "▲"}` : base;
+    th.classList.toggle("active-label", th.dataset.label === String(label));
   }
 
   // Render a bounded slice: a 1000-residue chain with a full DOM table is slow to
@@ -462,8 +483,7 @@ function renderTable() {
   const LIMIT = 400;
   const frag = document.createDocumentFragment();
   for (const r of rows.slice(0, LIMIT)) {
-    const p = r.p[setup][label];
-    const hit = p >= view.threshold;
+    const hit = r.p[setup][label] >= view.threshold;
     frag.append(el("tr", {
       class: hit ? "hit" : "",
       onmouseenter: () => { hoverResi = r.i; drawTrack(); },
@@ -474,16 +494,19 @@ function renderTable() {
       el("td", {}, `${r.auth}${r.icode}`),
       el("td", {}, r.aa),
       el("td", {}, r.sas === null ? "—" : fmt.n(r.sas, 1)),
-      el("td", {},
-        el("div", { class: "bar-cell" },
-          el("div", { class: "bar", style: { width: `${Math.max(2, p * 46)}px`,
-                                             background: scoreColor(p, { threshold: view.threshold }) } }),
-          el("span", {}, fmt.n(p, 3)))),
+      ...labels.map((_, k) => {
+        const p = r.p[setup][k];
+        return el("td", { class: k === label ? "active-label" : "" },
+          el("div", { class: "bar-cell" },
+            el("div", { class: "bar", style: { width: `${Math.max(2, p * 46)}px`,
+                                               background: scoreColor(p, { threshold: view.threshold }) } }),
+            el("span", {}, fmt.n(p, 3))));
+      }),
     ));
   }
   tbody.append(frag);
   if (rows.length > LIMIT) {
-    tbody.append(el("tr", {}, el("td", { colspan: "5", class: "muted",
+    tbody.append(el("tr", {}, el("td", { colspan: String(4 + labels.length), class: "muted",
       style: { textAlign: "center", padding: "10px" } },
       `showing the top ${LIMIT} of ${rows.length} — download the CSV for all`)));
   }
