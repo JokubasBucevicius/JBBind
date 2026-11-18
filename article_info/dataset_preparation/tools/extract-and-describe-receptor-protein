@@ -1,0 +1,344 @@
+#!/bin/bash
+
+#!/bin/bash
+
+function print_help_and_exit
+{
+cat >&2 << 'EOF'
+
+'extract-and-describe-receptor-protein' extracts and describes one or more protein chains from a protein complex.
+
+Options:
+    --input-complex           string  *  path to full protein complex file in PDB format
+    --chain-id                string     chain ID (or comma-separated IDs), default is 'first' to take the first protein chain
+    --output-dir              string  *  output directory path
+    --output-naming           string     output files naming mode, default is 'BASENAME/name', other possibilities are 'BASENAME_name' and 'BASENAME/BASENAME_name'
+    --no-faspr                           flag to not rebuild side-chains with FASPR
+    --all-chains-no-bsite                flag to describe whole input structure without looking for interfaces and without annotating binding sites
+    --help | -h                          flag to display help message and exit
+    
+Standard output:
+    Information messages in stdout, error messages in stderr
+    
+Examples:
+    extract-and-describe-receptor-protein --input-complex "./2zsk.pdb" --output-dir "./output"
+    
+    extract-and-describe-receptor-protein --input-complex "./2zsk.pdb" --chain-id "A" --output-dir "./output"
+    
+    extract-and-describe-receptor-protein --input-complex "./3bep.pdb" --chain-id "A,B" --output-dir "./output" --output-naming "BASENAME/BASENAME_name"
+    
+    extract-and-describe-receptor-protein --input-complex "./2zsk.pdb" --all-chains-no-bsite --no-faspr --output-dir "./output"
+
+EOF
+exit 1
+}
+
+readonly ZEROARG=$0
+
+if [ -z "$1" ]
+then
+	print_help_and_exit
+fi
+
+SELFLOCATION="$(dirname ${ZEROARG})"
+
+if [[ $ZEROARG == *"/"* ]]
+then
+	cd "$SELFLOCATION"
+	SELFLOCATION="$(pwd)"
+	export PATH="${SELFLOCATION}:${PATH}"
+	cd - &> /dev/null
+fi
+
+export LC_ALL=C
+
+command -v voronota-js &> /dev/null || { echo >&2 "Error: 'voronota-js' executable not in binaries path"; exit 1; }
+command -v voronota-js-fast-iface-contacts &> /dev/null || { echo >&2 "Error: 'voronota-js-fast-iface-contacts' executable not in binaries path"; exit 1; }
+command -v voronota-js-pdb-utensil-print-sequence-from-structure &> /dev/null || { echo >&2 "Error: 'voronota-js-pdb-utensil-print-sequence-from-structure' executable not in binaries path"; exit 1; }
+# command -v hbplus &> /dev/null || { echo >&2 "Error: 'hbplus' executable not in binaries path"; exit 1; }
+
+COMPLEXFILE=""
+CHAIN="first"
+CHAIN_PROVIDED="false"
+OUTPUT_DIR=""
+OUTPUT_NAMING="BASENAME/name"
+NO_FASPR="false"
+ALL_CHAINS_NO_BSITE="false"
+HELP_MODE="false"
+
+while [[ $# > 0 ]]
+do
+	OPTION="$1"
+	OPTARG="$2"
+	shift
+	case $OPTION in
+	--input-complex)
+		COMPLEXFILE="$OPTARG"
+		shift
+		;;
+	--chain-id)
+		CHAIN="$(echo ${OPTARG} | tr -d ' ')"
+		CHAIN_PROVIDED="true"
+		shift
+		;;
+	--output-naming)
+		OUTPUT_NAMING="$OPTARG"
+		shift
+		;;
+	--output-dir)
+		OUTPUT_DIR="$OPTARG"
+		shift
+		;;
+	--no-faspr)
+		NO_FASPR="true"
+		;;
+	--all-chains-no-bsite)
+		ALL_CHAINS_NO_BSITE="true"
+		;;
+	-h|--help)
+		HELP_MODE="true"
+		;;
+	*)
+		echo >&2 "Error: invalid command line option '$OPTION'"
+		exit 1
+		;;
+	esac
+done
+
+if [ "$HELP_MODE" == "true" ]
+then
+	print_help_and_exit
+fi
+
+if [ -z "$COMPLEXFILE" ]
+then
+	echo >&2 "Error: no input complex provided"
+	exit 1
+fi
+
+if [ "$ALL_CHAINS_NO_BSITE" == "true" ] && [ "$CHAIN_PROVIDED" == "true" ]
+then
+	echo >&2 "Error: '--all-chains-no-bsite' and '--chain-id' used together"
+	exit 1
+fi
+
+if [ "$ALL_CHAINS_NO_BSITE" == "true" ]
+then
+	CHAIN="all"
+fi
+
+if [ -z "$CHAIN" ]
+then
+	echo >&2 "Error: no chain ID set"
+	exit 1
+fi
+
+if [ -z "$OUTPUT_DIR" ]
+then
+	echo >&2 "Error: no output directory provided"
+	exit 1
+fi
+
+if [ "$OUTPUT_NAMING" != "BASENAME/name" ] && [ "$OUTPUT_NAMING" != "BASENAME_name" ] && [ "$OUTPUT_NAMING" != "BASENAME/BASENAME_name" ]
+then
+	echo >&2 "Error: invalid output naming mode"
+	exit 1
+fi
+
+if [ ! -s "$COMPLEXFILE" ]
+then
+	echo >&2 "Error: input complex structure file '$COMPLEXFILE' does not exist"
+	exit 1
+fi
+
+COMPLEX_BASENAME="$(basename ${COMPLEXFILE} .pdb)"
+
+if [ "${CHAIN}" == "first" ]
+then
+	CHAIN="$(cat ${COMPLEXFILE} | voronota-js-pdb-utensil-print-sequence-from-structure --selection '[-protein]' | head -1 | tr -d '>' | awk '{print $1}')"
+elif [ "${CHAIN}" == "all" ]
+then
+	CHAIN="$(cat ${COMPLEXFILE} | voronota-js-pdb-utensil-print-sequence-from-structure --selection '[-protein]' | egrep '^>' | tr -d '>' | awk '{print $1}' | tr '\n' ',' | sed 's/,$//')"
+fi
+
+if [ -z "$CHAIN" ]
+then
+	echo >&2 "Error: failed to get protein chain ID from generated sequence file"
+	exit 1
+fi
+
+BASENAME="${COMPLEX_BASENAME}_chain_$(echo ${CHAIN} | tr ',' '-')"
+
+OUTPREFIX="${OUTPUT_DIR}/${BASENAME}/"
+
+if [ "$OUTPUT_NAMING" == "BASENAME/name" ]
+then
+	OUTPREFIX="${OUTPUT_DIR}/${BASENAME}/"
+fi
+
+if [ "$OUTPUT_NAMING" == "BASENAME_name" ]
+then
+	OUTPREFIX="${OUTPUT_DIR}/${BASENAME}_"
+fi
+
+if [ "$OUTPUT_NAMING" == "BASENAME/BASENAME_name" ]
+then
+	OUTPREFIX="${OUTPUT_DIR}/${BASENAME}/${BASENAME}_"
+fi
+
+DATA_DESCRIPTION="complex '$COMPLEXFILE' chain '$CHAIN'"
+
+mkdir -p "$(dirname ${OUTPREFIX}name)"
+
+{
+cat "$COMPLEXFILE" \
+| voronota-js-pdb-utensil-print-sequence-from-structure --selection '[-protein]' \
+| sed 's/^\(>.*\)$/\1 protein/'
+
+cat "$COMPLEXFILE" \
+| voronota-js-pdb-utensil-print-sequence-from-structure --selection '[-nucleic]' 2> /dev/null \
+| sed 's/^\(>.*\)$/\1 nucleic/'
+} \
+> "${OUTPREFIX}sequences.fasta"
+
+BSITEFILE=""
+
+if [ "$ALL_CHAINS_NO_BSITE" != "true" ]
+then
+	voronota-js-fast-iface-contacts \
+	  --input "$COMPLEXFILE" \
+	  --as-assembly \
+	  --subselect-contacts "[-a1 [-chain ${CHAIN}] -a2! [-chain ${CHAIN}]]" \
+	  --output-contacts-file "${OUTPREFIX}iface_contacts.tsv" \
+	  --output-bsite-file "${OUTPREFIX}bsite_areas.tsv"
+	
+	if [ ! -s "${OUTPREFIX}iface_contacts.tsv" ]
+	then
+		echo >&2 "Error: failed to compute interface contacts for $DATA_DESCRIPTION"
+		exit 1
+	fi
+	
+	if [ ! -s "${OUTPREFIX}bsite_areas.tsv" ]
+	then
+		echo >&2 "Error: failed to compute binding site areas for $DATA_DESCRIPTION"
+		exit 1
+	fi
+	
+	BSITEFILE="${OUTPREFIX}bsite_areas.tsv"
+fi
+
+{
+cat << EOF
+var params={}
+params.complex_structure_file='$COMPLEXFILE';
+params.bsite_file='$BSITEFILE';
+params.chain_id='$CHAIN';
+params.no_faspr='$NO_FASPR';
+params.faspr_path='$SELFLOCATION';
+params.output_prefix='$OUTPREFIX';
+EOF
+
+cat << 'EOF'
+voronota_auto_assert_full_success=true;
+
+voronota_import('-file', params.complex_structure_file, '-as-assembly', '-title', 'model');
+
+voronota_restrict_atoms("-use", "[-protein -chain "+params.chain_id+"]");
+
+if(params.no_faspr!="true")
+{
+	voronota_faspr('-lib-path', params.faspr_path);
+}
+
+if(params.bsite_file!='')
+{
+	voronota_import_adjuncts_of_atoms("-file", params.bsite_file, "-no-serial");
+}
+
+voronota_set_adjunct_of_atoms("-use [-v! bsite_area] -name bsite_area -value 0");
+
+voronota_construct_contacts('-probe', 0.01);
+
+voronota_set_adjunct_of_atoms_by_expression('-expression', '_linear_combo', '-input-adjuncts', 'volume', '-parameters', [1.0, 0.0], '-output-adjunct', 'volume_vdw');
+
+voronota_delete_adjuncts_of_atoms('-adjuncts', ['volume']);
+
+voronota_construct_contacts('-probe', 1.4, '-adjunct-solvent-direction', '-calculate-bounding-arcs', '-force');
+
+voronota_voromqa_global("-adj-atom-sas-potential", "voromqa_sas_potential", "-adj-contact-energy", "voromqa_energy", "-smoothing-window", 0, "-adj-atom-quality", "voromqa_score_a", "-adj-residue-quality", "voromqa_score_r");
+
+voronota_set_adjunct_of_atoms_by_type_number("-name", "atom_type", "-typing-mode", "protein_atom");
+voronota_set_adjunct_of_atoms_by_type_number("-name", "residue_type", "-typing-mode", "protein_residue");
+
+voronota_set_adjunct_of_atoms_by_contact_areas("-use [-solvent] -name sas_area");
+voronota_set_adjunct_of_atoms_by_contact_adjuncts('[-solvent]', '-source-name', 'solvdir_x', '-destination-name', 'solvdir_x', '-pooling-mode', 'min');
+voronota_set_adjunct_of_atoms_by_contact_adjuncts('[-solvent]', '-source-name', 'solvdir_y', '-destination-name', 'solvdir_y', '-pooling-mode', 'min');
+voronota_set_adjunct_of_atoms_by_contact_adjuncts('[-solvent]', '-source-name', 'solvdir_z', '-destination-name', 'solvdir_z', '-pooling-mode', 'min');
+
+voronota_set_adjuncts_of_atoms_by_ufsr('[-aname CA]', '-name-prefix', 'mc_ufsr');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_a1 -destination-name ufsr_a1 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_b1 -destination-name ufsr_b1 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_c1 -destination-name ufsr_c1 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_a2 -destination-name ufsr_a2 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_b2 -destination-name ufsr_b2 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_c2 -destination-name ufsr_c2 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_a3 -destination-name ufsr_a3 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_b3 -destination-name ufsr_b3 -pooling-mode max');
+voronota_set_adjunct_of_atoms_by_residue_pooling('-source-name mc_ufsr_c3 -destination-name ufsr_c3 -pooling-mode max');
+
+voronota_describe_exposure("-adj-atom-exposure-value ev14 -probe-min 1.4 -probe-max 30 -expansion 1 -smoothing-iterations 0 -smoothing-depth 0");
+voronota_describe_exposure("-adj-atom-exposure-value ev28 -probe-min 2.8 -probe-max 30 -expansion 1 -smoothing-iterations 0 -smoothing-depth 0");
+voronota_describe_exposure("-adj-atom-exposure-value ev56 -probe-min 5.6 -probe-max 30 -expansion 1 -smoothing-iterations 0 -smoothing-depth 0");
+
+voronota_auto_assert_full_success=false;
+voronota_set_adjunct_of_atoms("-use [-v! sas_area] -name sas_area -value 0");
+voronota_set_adjunct_of_atoms("-use [-v! solvdir_x] -name solvdir_x -value 0");
+voronota_set_adjunct_of_atoms("-use [-v! solvdir_y] -name solvdir_y -value 0");
+voronota_set_adjunct_of_atoms("-use [-v! solvdir_z] -name solvdir_z -value 0");
+voronota_set_adjunct_of_atoms("-use [-v! voromqa_sas_potential] -name voromqa_sas_potential -value 0");
+voronota_set_adjunct_of_atoms("-use [-v! ev14] -name ev14 -value 2");
+voronota_set_adjunct_of_atoms("-use [-v! ev28] -name ev28 -value 2");
+voronota_set_adjunct_of_atoms("-use [-v! ev56] -name ev56 -value 2");
+voronota_auto_assert_full_success=true;
+
+voronota_set_adjunct_of_atoms_by_expression("-use [] -expression _multiply -input-adjuncts voromqa_sas_potential sas_area -output-adjunct voromqa_sas_energy");
+
+voronota_set_adjunct_of_contacts("-use [] -name seq_sep_class -value 5");
+voronota_set_adjunct_of_contacts("-use [] -name covalent_bond -value 0");
+
+voronota_auto_assert_full_success=false;
+voronota_run_hbplus('-select-contacts', 'hbonds');
+voronota_set_adjunct_of_contacts("-use [hbonds] -name hbond -value 1");
+voronota_auto_assert_full_success=true;
+
+voronota_auto_assert_full_success=false;
+voronota_set_adjunct_of_contacts("-use [-min-seq-sep 0 -max-seq-sep 0] -name seq_sep_class -value 0");
+voronota_set_adjunct_of_contacts("-use [-min-seq-sep 1 -max-seq-sep 1] -name seq_sep_class -value 1");
+voronota_set_adjunct_of_contacts("-use [-min-seq-sep 2 -max-seq-sep 2] -name seq_sep_class -value 2");
+voronota_set_adjunct_of_contacts("-use [-min-seq-sep 3 -max-seq-sep 3] -name seq_sep_class -value 3");
+voronota_set_adjunct_of_contacts("-use [-min-seq-sep 4 -max-seq-sep 4] -name seq_sep_class -value 4");
+voronota_set_adjunct_of_contacts("-use ([-max-seq-sep 0 -max-dist 1.8] or [-min-seq-sep 1 -max-seq-sep 1 -a1 [-aname N] -a2 [-aname C] -max-dist 1.8]) -name covalent_bond -value 1");
+voronota_set_adjunct_of_contacts("-use [-v! voromqa_energy] -name voromqa_energy -value 0");
+voronota_set_adjunct_of_contacts("-use [-v! hbond] -name hbond -value 0");
+voronota_auto_assert_full_success=true;
+
+voronota_select_atoms('-use', '[-v voromqa_depth]', '-name', 'tessellated'); 
+
+voronota_export_atoms('-as-pdb', '-file', params.output_prefix+'receptor.pdb', '-use', '[tessellated]', '-pdb-b-factor', 'bsite_area');
+
+voronota_export_adjuncts_of_atoms('-file', params.output_prefix+'graph_nodes.csv', '-use', '[tessellated]', '-no-serial', '-adjuncts', ['atom_index', 'residue_index', 'atom_type', 'residue_type', 'center_x', 'center_y', 'center_z', 'radius', 'sas_area', 'solvdir_x', 'solvdir_y', 'solvdir_z', 'voromqa_sas_energy', 'voromqa_depth', 'voromqa_score_a', 'voromqa_score_r', 'volume', 'volume_vdw', 'ev14', 'ev28', 'ev56', 'ufsr_a1', 'ufsr_a2', 'ufsr_a3', 'ufsr_b1', 'ufsr_b2', 'ufsr_b3', 'ufsr_c1', 'ufsr_c2', 'ufsr_c3', 'bsite_area'], '-sep', ',', '-expand-ids', true);
+
+voronota_export_adjuncts_of_contacts('-file', params.output_prefix+'graph_links.csv', '-atoms-use', '[tessellated]', '-contacts-use', '[-no-solvent]', '-no-serial', '-adjuncts', ['atom_index1', 'atom_index2', 'area', 'boundary', 'distance', 'voromqa_energy', 'seq_sep_class', 'covalent_bond', 'hbond'], '-sep', ',', '-expand-ids', true);
+
+EOF
+} \
+| voronota-js
+
+if [ ! -s "${OUTPREFIX}graph_nodes.csv" ] || [ ! -s "${OUTPREFIX}graph_links.csv" ] || [ ! -s "${OUTPREFIX}receptor.pdb" ]
+then
+	echo >&2 "Failed: graph data for $DATA_DESCRIPTION"
+	exit 1
+fi
+
+echo "Finished: graph data for $DATA_DESCRIPTION"
+

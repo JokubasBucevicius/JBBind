@@ -1,0 +1,143 @@
+20 runs — 5 setups x 4 architectures
+up to 8,609 held-out chains
+threshold 0.5, metrics from evaluate_multilabel
+split=held_out_test
+
+==============================================================================
+LABEL DISTRIBUTION — held-out test set (sequence_cluster_40 filtered)
+==============================================================================
+chains           8,609
+residues     2,481,044   (surface residues, sas_area > 0)
+                 288.2   mean per chain (median 226)
+
+                 label                                                      column    kind  residues  residue_pct  chains  chain_pct  pos_weight
+          Homo-protein                                          binds_homo_protein    base    228313       9.2023    5395    62.6670      9.8669
+        Hetero-protein                                        binds_hetero_protein    base    159621       6.4336    3834    44.5348     14.5433
+                   DNA                                                   binds_dna    base     10975       0.4424     153     1.7772    225.0632
+                   RNA                                                   binds_rna    base     13005       0.5242     198     2.2999    189.7762
+ Protein (homo|hetero)                     binds_homo_protein|binds_hetero_protein derived    383106      15.4413    8487    98.5829      5.4761
+Nucleic acid (DNA|RNA)                                         binds_dna|binds_rna derived     16615       0.6697     288     3.3453    148.3255
+           Any binding binds_homo_protein|binds_hetero_protein|binds_dna|binds_rna derived    398766      16.0725    8609   100.0000      5.2218
+           Non-binding                                             (all four zero) derived   2082278      83.9275       0     0.0000         NaN
+
+Residues carrying more than one label: 12,864 (3.23% of binding residues)
+
+------------------------------------------------------------------------------
+PER SETUP — over the chains that setup scores
+------------------------------------------------------------------------------
+          setup        label  qualifying_chains  residues  positives  positive_pct  pos_weight
+protein_nucleic      Protein               8609   2481044     383106       15.4413      5.4761
+protein_nucleic Nucleic acid               8609   2481044      16615        0.6697    148.3255
+    homo_hetero         Homo               8487   2418450     228313        9.4405      9.5927
+    homo_hetero       Hetero               8487   2418450     159621        6.6001     14.1512
+        protein      Protein               8487   2418450     383106       15.8410      5.3127
+        dna_rna          DNA                288    130695      10975        8.3974     10.9084
+        dna_rna          RNA                288    130695      13005        9.9506      9.0496
+        nucleic Nucleic acid                288    130695      16615       12.7128      6.8661
+
+------------------------------------------------------------------------------
+HELD-OUT vs TRAINING SPLIT — positive rate per label (percentage points)
+------------------------------------------------------------------------------
+          setup        label  positive_pct  train_pct  shift_pp
+protein_nucleic      Protein       15.4413    17.1600   -1.7187
+protein_nucleic Nucleic acid        0.6697     0.2800    0.3897
+    homo_hetero         Homo        9.4405    13.3900   -3.9495
+    homo_hetero       Hetero        6.6001     4.0700    2.5301
+        protein      Protein       15.8410    17.3800   -1.5390
+        dna_rna          DNA        8.3974     8.1900    0.2074
+        dna_rna          RNA        9.9506     5.7200    4.2306
+        nucleic Nucleic acid       12.7128    12.5000    0.2128
+
+==============================================================================
+HEADLINE — macro benchmarks per (setup, architecture)
+==============================================================================
+          setup architecture  n_test_chains  n_test_residues  PR AUC (macro)  ROC AUC (macro)  F1 (macro)  Precision (macro)  Recall (macro)  Bal Acc (macro)  Hamming Loss  Exact Match
+protein_nucleic          MLP           8545          2294373          0.2976           0.8011      0.3644             0.2903          0.5280           0.6763        0.1755       0.6518
+protein_nucleic          GNN           8609          2481044          0.1585           0.7294      0.1965             0.1334          0.6997           0.6659        0.3657       0.4177
+protein_nucleic      GNN+MLP           8545          2294373          0.3379           0.8648      0.3130             0.2044          0.7564           0.7784        0.1907       0.6249
+protein_nucleic        Joint           8545          2294373          0.2622           0.8187      0.2388             0.1453          0.8042           0.7435        0.2871       0.4831
+    homo_hetero          MLP           8426          2246510          0.2857           0.7742      0.3324             0.2541          0.5181           0.6797        0.1827       0.6624
+    homo_hetero          GNN           8487          2418450          0.1678           0.7135      0.2283             0.1373          0.6789           0.6546        0.3651       0.5050
+    homo_hetero      GNN+MLP           8426          2246510          0.3203           0.8030      0.3430             0.2369          0.6214           0.7196        0.1976       0.6400
+    homo_hetero        Joint           8426          2246510          0.3180           0.8018      0.3412             0.2377          0.6167           0.7191        0.1960       0.6396
+        protein          MLP           8426          2246510          0.3854           0.7435      0.4168             0.3549          0.5048           0.6616        0.2333       0.7667
+        protein          GNN           8487          2418450          0.3195           0.7260      0.3735             0.2494          0.7437           0.6612        0.3952       0.6048
+        protein      GNN+MLP           8426          2246510          0.4216           0.7695      0.4359             0.3149          0.7083           0.7017        0.3027       0.6973
+        protein        Joint           8426          2246510          0.4303           0.7794      0.4506             0.3355          0.6860           0.7086        0.2762       0.7238
+        dna_rna          MLP            284           110983          0.5285           0.8814      0.5207             0.4515          0.6169           0.7670        0.1133       0.8301
+        dna_rna          GNN            288           130695          0.1908           0.7000      0.2417             0.1459          0.7037           0.6441        0.4043       0.5212
+        dna_rna      GNN+MLP            284           110983          0.5512           0.8887      0.5359             0.4925          0.5881           0.7604        0.1022       0.8415
+        dna_rna        Joint            284           110983          0.5484           0.8941      0.5414             0.4631          0.6517           0.7837        0.1110       0.8231
+        nucleic          MLP            284           110983          0.5739           0.8708      0.5553             0.4707          0.6769           0.7777        0.1493       0.8507
+        nucleic          GNN            288           130695          0.2632           0.7081      0.3234             0.2151          0.6510           0.6525        0.3464       0.6536
+        nucleic      GNN+MLP            284           110983          0.5945           0.8808      0.5562             0.4466          0.7369           0.7956        0.1619       0.8381
+        nucleic        Joint            284           110983          0.5888           0.8824      0.5713             0.5383          0.6085           0.7626        0.1257       0.8743
+
+==============================================================================
+PER LABEL — detection quality (threshold 0.5 unless stated)
+==============================================================================
+           task architecture        label  positives  prevalence  roc_auc  pr_auc  pr_lift  f1_05  best_f1  best_threshold
+protein_nucleic          mlp Nucleic acid      15279      0.0067   0.8728  0.2418  36.3072 0.3366   0.3378          0.5540
+protein_nucleic          mlp      Protein     371013      0.1617   0.7294  0.3534   2.1853 0.3922   0.4006          0.5250
+protein_nucleic          gnn Nucleic acid      16615      0.0067   0.7460  0.0222   3.3078 0.0253   0.0566          0.6274
+protein_nucleic          gnn      Protein     383106      0.1544   0.7128  0.2949   1.9098 0.3676   0.3718          0.5187
+protein_nucleic      gnn_mlp Nucleic acid      15279      0.0067   0.9646  0.2849  42.7747 0.2106   0.3592          0.8751
+protein_nucleic      gnn_mlp      Protein     371013      0.1617   0.7649  0.3909   2.4175 0.4155   0.4361          0.5429
+protein_nucleic        joint Nucleic acid      15279      0.0067   0.9422  0.2208  33.1537 0.1374   0.3056          0.8515
+protein_nucleic        joint      Protein     371013      0.1617   0.6952  0.3035   1.8771 0.3401   0.3778          0.5749
+    homo_hetero          mlp       Hetero     151781      0.0676   0.7827  0.2591   3.8344 0.3380   0.3382          0.4970
+    homo_hetero          mlp         Homo     223839      0.0996   0.7657  0.3122   3.1337 0.3268   0.3482          0.5805
+    homo_hetero          gnn       Hetero     159621      0.0660   0.7329  0.1595   2.4163 0.2121   0.2380          0.5636
+    homo_hetero          gnn         Homo     228313      0.0944   0.6941  0.1762   1.8663 0.2445   0.2548          0.5330
+    homo_hetero      gnn_mlp       Hetero     151781      0.0676   0.8088  0.2874   4.2538 0.3247   0.3629          0.6688
+    homo_hetero      gnn_mlp         Homo     223839      0.0996   0.7973  0.3531   3.5441 0.3613   0.3858          0.5647
+    homo_hetero        joint       Hetero     151781      0.0676   0.8051  0.2809   4.1576 0.3098   0.3625          0.6862
+    homo_hetero        joint         Homo     223839      0.0996   0.7985  0.3551   3.5638 0.3726   0.3846          0.5468
+        protein          mlp      Protein     371013      0.1652   0.7435  0.3854   2.3336 0.4168   0.4188          0.4632
+        protein          gnn      Protein     383106      0.1584   0.7260  0.3195   2.0170 0.3735   0.3866          0.5384
+        protein      gnn_mlp      Protein     371013      0.1652   0.7695  0.4216   2.5525 0.4359   0.4494          0.5473
+        protein        joint      Protein     371013      0.1652   0.7794  0.4303   2.6053 0.4506   0.4577          0.5482
+        dna_rna          mlp          DNA      10205      0.0920   0.9065  0.5437   5.9125 0.5423   0.5531          0.5986
+        dna_rna          mlp          RNA      12025      0.1083   0.8563  0.5134   4.7382 0.4992   0.5052          0.5792
+        dna_rna          gnn          DNA      10975      0.0840   0.7027  0.1780   2.1192 0.2303   0.2527          0.5579
+        dna_rna          gnn          RNA      13005      0.0995   0.6974  0.2036   2.0460 0.2531   0.2773          0.5445
+        dna_rna      gnn_mlp          DNA      10205      0.0920   0.9112  0.5642   6.1355 0.5636   0.5650          0.5167
+        dna_rna      gnn_mlp          RNA      12025      0.1083   0.8662  0.5383   4.9679 0.5083   0.5130          0.5622
+        dna_rna        joint          DNA      10205      0.0920   0.9217  0.5709   6.2082 0.5724   0.5768          0.5444
+        dna_rna        joint          RNA      12025      0.1083   0.8664  0.5260   4.8543 0.5104   0.5177          0.5960
+        nucleic          mlp Nucleic acid      15279      0.1377   0.8708  0.5739   4.1687 0.5553   0.5622          0.5744
+        nucleic          gnn Nucleic acid      16615      0.1271   0.7081  0.2632   2.0703 0.3234   0.3323          0.5361
+        nucleic      gnn_mlp Nucleic acid      15279      0.1377   0.8808  0.5945   4.3181 0.5562   0.5789          0.5949
+        nucleic        joint Nucleic acid      15279      0.1377   0.8824  0.5888   4.2765 0.5713   0.5721          0.5096
+
+Best on protein_nucleic: GNN+MLP (PR AUC macro 0.3379, ROC AUC macro 0.8648)
+Best on homo_hetero: GNN+MLP (PR AUC macro 0.3203, ROC AUC macro 0.8030)
+Best on protein: Joint (PR AUC macro 0.4303, ROC AUC macro 0.7794)
+Best on dna_rna: GNN+MLP (PR AUC macro 0.5512, ROC AUC macro 0.8887)
+Best on nucleic: GNN+MLP (PR AUC macro 0.5945, ROC AUC macro 0.8808)
+
+==============================================================================
+GENERALISATION GAP — held-out minus internal test split (macro only)
+==============================================================================
+metric                        PR AUC (macro)  ROC AUC (macro)  F1 (macro)  Precision (macro)  Recall (macro)  Bal Acc (macro)  Hamming Loss  Exact Match
+setup           architecture                                                                                                                            
+dna_rna         GNN                   0.0465          -0.0022      0.0507             0.0342          0.0023          -0.0029        0.0039       0.0122
+                GNN+MLP               0.0243          -0.0175      0.0110             0.0341         -0.0260          -0.0213        0.0307      -0.0290
+                Joint                 0.0215          -0.0197      0.0223             0.0338         -0.0062          -0.0144        0.0321      -0.0329
+                MLP                   0.0191          -0.0206      0.0127             0.0255         -0.0124          -0.0178        0.0347      -0.0307
+homo_hetero     GNN                  -0.0260          -0.0200     -0.0140            -0.0153          0.0137          -0.0147        0.0406      -0.0359
+                GNN+MLP              -0.1060          -0.0822     -0.0651            -0.0460         -0.1522          -0.0830        0.0268      -0.0425
+                Joint                -0.1141          -0.0905     -0.0802            -0.0632         -0.1565          -0.0913        0.0371      -0.0618
+                MLP                  -0.1108          -0.0916     -0.0820            -0.0483         -0.1403          -0.0765        0.0282      -0.0470
+nucleic         GNN                   0.0005          -0.0126      0.0029             0.0037         -0.0110          -0.0108        0.0107      -0.0107
+                GNN+MLP              -0.0651          -0.0321     -0.0300            -0.0201         -0.0507          -0.0357        0.0261      -0.0261
+                Joint                -0.0691          -0.0333     -0.0479            -0.0303         -0.0710          -0.0413        0.0237      -0.0237
+                MLP                  -0.0697          -0.0342     -0.0335            -0.0207         -0.0574          -0.0366        0.0241      -0.0241
+protein         GNN                  -0.0409          -0.0140     -0.0328            -0.0328          0.0186          -0.0122        0.0345      -0.0345
+                GNN+MLP              -0.1540          -0.0857     -0.0925            -0.0750         -0.1115          -0.0742        0.0498      -0.0498
+                Joint                -0.1484          -0.0777     -0.0890            -0.0725         -0.1104          -0.0689        0.0414      -0.0414
+                MLP                  -0.1641          -0.0967     -0.1175            -0.0982         -0.1461          -0.0817        0.0372      -0.0372
+protein_nucleic GNN                  -0.0110          -0.0038     -0.0064            -0.0128          0.0203          -0.0028        0.0194      -0.0298
+                GNN+MLP              -0.0065          -0.0166     -0.0043            -0.0064         -0.0101          -0.0135        0.0196      -0.0368
+                Joint                 0.0131          -0.0170     -0.0069            -0.0092          0.0350          -0.0079        0.0458      -0.0644
+                MLP                  -0.0179          -0.0121      0.0057             0.0180         -0.0134          -0.0114        0.0136      -0.0263

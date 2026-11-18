@@ -1,0 +1,6 @@
+folder	pdb_entries	chains	definition	files
+training_set	37946	84648	PPI3D entries released 1976-08-19 to 2024-01-31 after filtering (antibodies, cross-taxonomy pairs, ribosomes/nucleosomes removed); chains = protein chains with graph + embedding; split 70/10/20 per task (seed 42) into train/val/internal test	ppi3d_filtered.csv, ppi3d_filtered_subunits.fasta, graphs/, structures/, embeddings/ (one example chain only: 11bg_A)
+test_set	6508	21517	PPI3D entries released 2024-02-07 to 2026-06-24, same filters; the pool c40/c70/c95 are cut from	ppi3d_test_data_filtered.csv, ppi3d_test_filtered_subunits.fasta, graphs/, structures/, embeddings/ (one example chain only: 10bl_A)
+c40	3134	8609	test chains whose 40% sequence cluster is absent from the training set	ppi3d_test_data_filtered_c40.csv; results in results/c40
+c70	3974	11369	test chains whose 70% sequence cluster is absent from the training set	ppi3d_test_data_filtered_c70.csv; results in results/c70
+c95	4515	13567	test chains whose 95% sequence cluster is absent from the training set	ppi3d_test_data_filtered_c95.csv; results in results/c95

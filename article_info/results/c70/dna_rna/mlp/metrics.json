@@ -1,0 +1,40 @@
+{
+  "setup": "dna_rna",
+  "arch": "mlp",
+  "arch_display": "MLP",
+  "label_names": [
+    "DNA",
+    "RNA"
+  ],
+  "n_test_residues": 129042,
+  "positives_per_label": {
+    "DNA": 10934,
+    "RNA": 13331
+  },
+  "metrics": {
+    "F1 (DNA)": 0.5452799527256611,
+    "Precision (DNA)": 0.4573163176805848,
+    "Recall (DNA)": 0.6751417596488019,
+    "Bal Acc (DNA)": 0.8004861776873737,
+    "ROC AUC (DNA)": 0.914520003638366,
+    "PR AUC (DNA)": 0.5585161517561431,
+    "F1 (RNA)": 0.4972647164804927,
+    "Precision (RNA)": 0.4413817166782973,
+    "Recall (RNA)": 0.5693496361863326,
+    "Bal Acc (RNA)": 0.7431662320468959,
+    "ROC AUC (RNA)": 0.8587063551428601,
+    "PR AUC (RNA)": 0.5108754153744935,
+    "F1 (macro)": 0.5212723346030769,
+    "Precision (macro)": 0.44934901717944103,
+    "Recall (macro)": 0.6222456979175672,
+    "ROC AUC (macro)": 0.8866131793906131,
+    "PR AUC (macro)": 0.5346957835653183,
+    "Bal Acc (macro)": 0.7718262048671348,
+    "Hamming Loss": 0.10717053362471134,
+    "Exact Match": 0.8363323569070535
+  },
+  "n_test_chains": 362,
+  "split": "held_out_test",
+  "cluster_filter": "70",
+  "checkpoint": "all_class/training/runs/dna_rna/mlp/model.pt"
+}

@@ -1,0 +1,40 @@
+{
+  "setup": "homo_hetero",
+  "arch": "joint",
+  "arch_display": "Joint",
+  "label_names": [
+    "Homo",
+    "Hetero"
+  ],
+  "n_test_residues": 2246510,
+  "positives_per_label": {
+    "Homo": 223839,
+    "Hetero": 151781
+  },
+  "metrics": {
+    "F1 (Homo)": 0.3725634618645128,
+    "Precision (Homo)": 0.2703947939087441,
+    "Recall (Homo)": 0.5988321963554162,
+    "Bal Acc (Homo)": 0.7100083299346276,
+    "ROC AUC (Homo)": 0.7985209821912036,
+    "PR AUC (Homo)": 0.3550941439823271,
+    "F1 (Hetero)": 0.3098257232317027,
+    "Precision (Hetero)": 0.20493526165524226,
+    "Recall (Hetero)": 0.6346578293725829,
+    "Bal Acc (Hetero)": 0.7281247741984288,
+    "ROC AUC (Hetero)": 0.805148246737787,
+    "PR AUC (Hetero)": 0.28089816640385395,
+    "F1 (macro)": 0.34119459254810774,
+    "Precision (macro)": 0.23766502778199317,
+    "Recall (macro)": 0.6167450128639995,
+    "ROC AUC (macro)": 0.8018346144644952,
+    "PR AUC (macro)": 0.31799615519309055,
+    "Bal Acc (macro)": 0.7190665520665283,
+    "Hamming Loss": 0.19600424658692817,
+    "Exact Match": 0.639572047308937
+  },
+  "n_test_chains": 8426,
+  "split": "held_out_test",
+  "cluster_filter": "40",
+  "checkpoint": "all_class/training/runs/homo_hetero/joint/model.pt"
+}

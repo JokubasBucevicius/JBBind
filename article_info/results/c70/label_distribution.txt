@@ -1,0 +1,31 @@
+==============================================================================
+LABEL DISTRIBUTION — held-out test set (sequence_cluster_70 filtered)
+==============================================================================
+chains          11,369
+residues     3,239,914   (surface residues, sas_area > 0)
+                 285.0   mean per chain (median 228)
+
+                 label                                                      column    kind  residues  residue_pct  chains  chain_pct  pos_weight
+          Homo-protein                                          binds_homo_protein    base    312903       9.6578    7085    62.3186      9.3544
+        Hetero-protein                                        binds_hetero_protein    base    211138       6.5168    5074    44.6301     14.3450
+                   DNA                                                   binds_dna    base     11715       0.3616     173     1.5217    275.5612
+                   RNA                                                   binds_rna    base     14322       0.4420     259     2.2781    225.2194
+ Protein (homo|hetero)                     binds_homo_protein|binds_hetero_protein derived    517672      15.9780   11227    98.7510      5.2586
+Nucleic acid (DNA|RNA)                                         binds_dna|binds_rna derived     18546       0.5724     366     3.2193    173.6961
+           Any binding binds_homo_protein|binds_hetero_protein|binds_dna|binds_rna derived    534912      16.5101   11369   100.0000      5.0569
+           Non-binding                                             (all four zero) derived   2705002      83.4899       0     0.0000         NaN
+
+Residues carrying more than one label: 14,844 (2.78% of binding residues)
+
+------------------------------------------------------------------------------
+PER SETUP — over the chains that setup scores
+------------------------------------------------------------------------------
+          setup        label  qualifying_chains  residues  positives  positive_pct  pos_weight
+protein_nucleic      Protein              11369   3239914     517672       15.9780      5.2586
+protein_nucleic Nucleic acid              11369   3239914      18546        0.5724    173.6961
+    homo_hetero         Homo              11227   3173693     312903        9.8593      9.1427
+    homo_hetero       Hetero              11227   3173693     211138        6.6528     14.0314
+        protein      Protein              11227   3173693     517672       16.3113      5.1307
+        dna_rna          DNA                366    149197      11715        7.8520     11.7356
+        dna_rna          RNA                366    149197      14322        9.5994      9.4173
+        nucleic Nucleic acid                366    149197      18546       12.4305      7.0447

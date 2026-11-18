@@ -1,0 +1,32 @@
+{
+  "setup": "nucleic",
+  "arch": "joint",
+  "arch_display": "Joint",
+  "label_names": [
+    "Nucleic acid"
+  ],
+  "n_test_residues": 129042,
+  "positives_per_label": {
+    "Nucleic acid": 17199
+  },
+  "metrics": {
+    "F1 (Nucleic acid)": 0.5780672705875913,
+    "Precision (Nucleic acid)": 0.5460703205791106,
+    "Recall (Nucleic acid)": 0.6140473283330427,
+    "Bal Acc (Nucleic acid)": 0.7677766840247153,
+    "ROC AUC (Nucleic acid)": 0.8890783205894567,
+    "PR AUC (Nucleic acid)": 0.6034323795520072,
+    "F1 (macro)": 0.5780672705875913,
+    "Precision (macro)": 0.5460703205791106,
+    "Recall (macro)": 0.6140473283330427,
+    "ROC AUC (macro)": 0.8890783205894567,
+    "PR AUC (macro)": 0.6034323795520072,
+    "Bal Acc (macro)": 0.7677766840247153,
+    "Hamming Loss": 0.11947272980889943,
+    "Exact Match": 0.8805272701911006
+  },
+  "n_test_chains": 362,
+  "split": "held_out_test",
+  "cluster_filter": "70",
+  "checkpoint": "all_class/training/runs/nucleic/joint/model.pt"
+}

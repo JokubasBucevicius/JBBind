@@ -1,0 +1,97 @@
+model,kind,true,predicted,count,row_frac
+MLP (binary),binary,Non-bind,Non-bind,98656,0.8820936491331599
+MLP (binary),binary,Non-bind,Binding (unresolved),13187,0.11790635086684012
+MLP (binary),binary,DNA,Non-bind,1097,0.28360910031023784
+MLP (binary),binary,DNA,Binding (unresolved),2771,0.7163908996897621
+MLP (binary),binary,RNA,Non-bind,2467,0.3937749401436552
+MLP (binary),binary,RNA,Binding (unresolved),3798,0.6062250598563448
+MLP (binary),binary,Both,Non-bind,1891,0.2676195867534673
+MLP (binary),binary,Both,Binding (unresolved),5175,0.7323804132465327
+GNN (binary),binary,Non-bind,Non-bind,85406,0.6536957237219768
+GNN (binary),binary,Non-bind,Binding (unresolved),45245,0.3463042762780231
+GNN (binary),binary,DNA,Non-bind,1369,0.3241003787878788
+GNN (binary),binary,DNA,Binding (unresolved),2855,0.6758996212121212
+GNN (binary),binary,RNA,Non-bind,2559,0.3746157224418094
+GNN (binary),binary,RNA,Binding (unresolved),4272,0.6253842775581906
+GNN (binary),binary,Both,Non-bind,2574,0.3436123348017621
+GNN (binary),binary,Both,Binding (unresolved),4917,0.6563876651982379
+GNN+MLP (binary),binary,Non-bind,Non-bind,95967,0.8580510179447977
+GNN+MLP (binary),binary,Non-bind,Binding (unresolved),15876,0.14194898205520237
+GNN+MLP (binary),binary,DNA,Non-bind,910,0.23526370217166495
+GNN+MLP (binary),binary,DNA,Binding (unresolved),2958,0.7647362978283351
+GNN+MLP (binary),binary,RNA,Non-bind,2076,0.33136472466081407
+GNN+MLP (binary),binary,RNA,Binding (unresolved),4189,0.668635275339186
+GNN+MLP (binary),binary,Both,Non-bind,1454,0.2057741296348712
+GNN+MLP (binary),binary,Both,Binding (unresolved),5612,0.7942258703651288
+Joint (binary),binary,Non-bind,Non-bind,103064,0.9215060397163881
+Joint (binary),binary,Non-bind,Binding (unresolved),8779,0.07849396028361184
+Joint (binary),binary,DNA,Non-bind,1363,0.3523784901758015
+Joint (binary),binary,DNA,Binding (unresolved),2505,0.6476215098241985
+Joint (binary),binary,RNA,Non-bind,2999,0.4786911412609737
+Joint (binary),binary,RNA,Binding (unresolved),3266,0.5213088587390263
+Joint (binary),binary,Both,Non-bind,2276,0.32210585904330596
+Joint (binary),binary,Both,Binding (unresolved),4790,0.677894140956694
+MLP (3-class),3-class,Non-bind,Non-bind,98960,0.8848117450354515
+MLP (3-class),3-class,Non-bind,DNA,3729,0.03334138032778091
+MLP (3-class),3-class,Non-bind,RNA,5063,0.04526881432007367
+MLP (3-class),3-class,Non-bind,Both,4091,0.03657806031669394
+MLP (3-class),3-class,DNA,Non-bind,1122,0.29007238883143743
+MLP (3-class),3-class,DNA,DNA,2294,0.5930713547052741
+MLP (3-class),3-class,DNA,RNA,88,0.022750775594622543
+MLP (3-class),3-class,DNA,Both,364,0.09410548086866598
+MLP (3-class),3-class,RNA,Non-bind,2616,0.41755786113328014
+MLP (3-class),3-class,RNA,DNA,301,0.048044692737430165
+MLP (3-class),3-class,RNA,RNA,2709,0.4324022346368715
+MLP (3-class),3-class,RNA,Both,639,0.10199521149241819
+MLP (3-class),3-class,Both,Non-bind,2059,0.29139541466176055
+MLP (3-class),3-class,Both,DNA,765,0.10826493065383527
+MLP (3-class),3-class,Both,RNA,283,0.04005094820266063
+MLP (3-class),3-class,Both,Both,3959,0.5602887064817436
+GNN (3-class),3-class,Non-bind,Non-bind,71653,0.5484305516222608
+GNN (3-class),3-class,Non-bind,DNA,2672,0.020451431676757163
+GNN (3-class),3-class,Non-bind,RNA,9382,0.07180963023627833
+GNN (3-class),3-class,Non-bind,Both,46944,0.3593083864647037
+GNN (3-class),3-class,DNA,Non-bind,1000,0.23674242424242425
+GNN (3-class),3-class,DNA,DNA,119,0.028172348484848484
+GNN (3-class),3-class,DNA,RNA,250,0.059185606060606064
+GNN (3-class),3-class,DNA,Both,2855,0.6758996212121212
+GNN (3-class),3-class,RNA,Non-bind,1875,0.27448397013614406
+GNN (3-class),3-class,RNA,DNA,121,0.017713365539452495
+GNN (3-class),3-class,RNA,RNA,466,0.068218416044503
+GNN (3-class),3-class,RNA,Both,4369,0.6395842482799005
+GNN (3-class),3-class,Both,Non-bind,1921,0.2564410626084635
+GNN (3-class),3-class,Both,DNA,123,0.016419703644373247
+GNN (3-class),3-class,Both,RNA,467,0.06234147643839274
+GNN (3-class),3-class,Both,Both,4980,0.6647977573087706
+GNN+MLP (3-class),3-class,Non-bind,Non-bind,100393,0.8976243484169774
+GNN+MLP (3-class),3-class,Non-bind,DNA,3303,0.02953246962259596
+GNN+MLP (3-class),3-class,Non-bind,RNA,5440,0.04863961088311294
+GNN+MLP (3-class),3-class,Non-bind,Both,2707,0.024203571077313735
+GNN+MLP (3-class),3-class,DNA,Non-bind,1203,0.3110134436401241
+GNN+MLP (3-class),3-class,DNA,DNA,2373,0.6134953464322648
+GNN+MLP (3-class),3-class,DNA,RNA,87,0.02249224405377456
+GNN+MLP (3-class),3-class,DNA,Both,205,0.05299896587383661
+GNN+MLP (3-class),3-class,RNA,Non-bind,2684,0.4284118116520351
+GNN+MLP (3-class),3-class,RNA,DNA,279,0.04453312051077414
+GNN+MLP (3-class),3-class,RNA,RNA,2948,0.47055067837190745
+GNN+MLP (3-class),3-class,RNA,Both,354,0.05650438946528332
+GNN+MLP (3-class),3-class,Both,Non-bind,2199,0.3112086045853382
+GNN+MLP (3-class),3-class,Both,DNA,805,0.11392584206057176
+GNN+MLP (3-class),3-class,Both,RNA,468,0.06623266345881687
+GNN+MLP (3-class),3-class,Both,Both,3594,0.5086328898952731
+Joint (3-class),3-class,Non-bind,Non-bind,97073,0.8679398800103717
+Joint (3-class),3-class,Non-bind,DNA,4252,0.03801757821231548
+Joint (3-class),3-class,Non-bind,RNA,7433,0.0664592330320181
+Joint (3-class),3-class,Non-bind,Both,3085,0.027583308745294743
+Joint (3-class),3-class,DNA,Non-bind,1018,0.2631851085832472
+Joint (3-class),3-class,DNA,DNA,2518,0.6509824198552223
+Joint (3-class),3-class,DNA,RNA,103,0.026628748707342297
+Joint (3-class),3-class,DNA,Both,229,0.059203722854188214
+Joint (3-class),3-class,RNA,Non-bind,2153,0.34365522745411015
+Joint (3-class),3-class,RNA,DNA,356,0.05682362330407023
+Joint (3-class),3-class,RNA,RNA,3283,0.524022346368715
+Joint (3-class),3-class,RNA,Both,473,0.07549880287310455
+Joint (3-class),3-class,Both,Non-bind,1669,0.2362015284460798
+Joint (3-class),3-class,Both,DNA,1005,0.14223039909425417
+Joint (3-class),3-class,Both,RNA,480,0.06793093688083782
+Joint (3-class),3-class,Both,Both,3912,0.5536371355788282

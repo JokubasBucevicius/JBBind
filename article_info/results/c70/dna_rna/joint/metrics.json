@@ -1,0 +1,40 @@
+{
+  "setup": "dna_rna",
+  "arch": "joint",
+  "arch_display": "Joint",
+  "label_names": [
+    "DNA",
+    "RNA"
+  ],
+  "n_test_residues": 129042,
+  "positives_per_label": {
+    "DNA": 10934,
+    "RNA": 13331
+  },
+  "metrics": {
+    "F1 (DNA)": 0.5727096099237782,
+    "Precision (DNA)": 0.48414403032217307,
+    "Recall (DNA)": 0.7009328699469545,
+    "Bal Acc (DNA)": 0.8158963804471115,
+    "ROC AUC (DNA)": 0.928617732450981,
+    "PR AUC (DNA)": 0.5840122032517926,
+    "F1 (RNA)": 0.5040675554455751,
+    "Precision (RNA)": 0.4288872512896094,
+    "Recall (RNA)": 0.6112069612182132,
+    "Bal Acc (RNA)": 0.758719433284306,
+    "ROC AUC (RNA)": 0.8669503990293392,
+    "PR AUC (RNA)": 0.5179967161561033,
+    "F1 (macro)": 0.5383885826846766,
+    "Precision (macro)": 0.45651564080589124,
+    "Recall (macro)": 0.6560699155825838,
+    "ROC AUC (macro)": 0.8977840657401601,
+    "PR AUC (macro)": 0.551004459703948,
+    "Bal Acc (macro)": 0.7873079068657087,
+    "Hamming Loss": 0.10643433920738984,
+    "Exact Match": 0.8275290215588723
+  },
+  "n_test_chains": 362,
+  "split": "held_out_test",
+  "cluster_filter": "70",
+  "checkpoint": "all_class/training/runs/dna_rna/joint/model.pt"
+}

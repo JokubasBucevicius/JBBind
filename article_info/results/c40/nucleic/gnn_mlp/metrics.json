@@ -1,0 +1,33 @@
+{
+  "setup": "nucleic",
+  "arch": "gnn_mlp",
+  "arch_display": "GNN+MLP",
+  "label_names": [
+    "Nucleic acid"
+  ],
+  "n_test_residues": 110983,
+  "positives_per_label": {
+    "Nucleic acid": 15279
+  },
+  "metrics": {
+    "F1 (Nucleic acid)": 0.5561647895672792,
+    "Precision (Nucleic acid)": 0.4466262049268119,
+    "Recall (Nucleic acid)": 0.7368937757706656,
+    "Bal Acc (Nucleic acid)": 0.795565921572535,
+    "ROC AUC (Nucleic acid)": 0.8807994223243596,
+    "PR AUC (Nucleic acid)": 0.5944688312138364,
+    "F1 (macro)": 0.5561647895672792,
+    "Precision (macro)": 0.4466262049268119,
+    "Recall (macro)": 0.7368937757706656,
+    "ROC AUC (macro)": 0.8807994223243596,
+    "PR AUC (macro)": 0.5944688312138364,
+    "Bal Acc (macro)": 0.795565921572535,
+    "Hamming Loss": 0.16191668994350486,
+    "Exact Match": 0.8380833100564952
+  },
+  "n_test_chains": 284,
+  "split": "held_out_test",
+  "cluster_filter": "40",
+  "checkpoint": "all_class/training/runs/nucleic/gnn_mlp/model.pt",
+  "feature_mlp": "all_class/training/runs/nucleic/mlp/model.pt"
+}

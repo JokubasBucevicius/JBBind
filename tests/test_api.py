@@ -144,6 +144,13 @@ def test_healthz_is_cheap(client):
     assert r.status_code == 200 and r.json()["status"] == "ok"
 
 
+def test_no_public_api_docs(client):
+    # /api/v1 backs the browser page only; the schema and docs pages stay off.
+    c, _, _ = client
+    for path in ("/api/docs", "/api/openapi.json", "/docs", "/redoc", "/openapi.json"):
+        assert c.get(path).status_code == 404, path
+
+
 def test_meta_lists_setups_and_archs(client):
     c, _, _ = client
     r = c.get("/api/v1/meta")

@@ -95,8 +95,9 @@ async def lifespan(app: FastAPI):
 
 def create_app(cfg: Settings | None = None) -> FastAPI:
     cfg = cfg or settings
+    # /api/v1 is the browser page's backend, not a public API: no docs, no schema.
     app = FastAPI(title="JBBind", version="1.0.0", lifespan=lifespan,
-                  docs_url="/api/docs", openapi_url="/api/openapi.json")
+                  docs_url=None, redoc_url=None, openapi_url=None)
     app.state.app = App(cfg)
     app.state.model_error = None
 
