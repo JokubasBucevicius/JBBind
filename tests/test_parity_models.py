@@ -26,7 +26,8 @@ DEVICE = torch.device("cpu")
 #: torch and MKL fall back to other kernels, the float32 sums run in a different order,
 #: and probabilities move by up to ~6e-6. The failure modes above move them by 1e-3 or
 #: more, so 2e-5 keeps a 3x margin over hardware drift and still catches every one.
-#: The feature tensors (test_parity_tensors.py) stay bit-identical on any CPU.
+#: The feature tensors (test_parity_tensors.py) stay exact on any CPU except one log1p
+#: column, which may differ by a few ULP.
 ATOL = 2e-5
 COMBOS = [(s, a) for s in SETUPS for a in ARCHS]
 

@@ -6,6 +6,12 @@ right bar: the arithmetic is the same float32 operations in the same order, so a
 discrepancy would itself be a finding (most likely a pandas groupby summation-order
 change), not something to paper over with ``allclose``.
 
+One exception, measured rather than guessed: node-feature column 1 goes through float32
+``np.log1p``, which numpy computes with its own AVX-512 routine where the CPU has one and
+with another where it does not (common in VMs). The two round differently in the last
+place, by up to 2 ULP on the golden chains. That column is held to ``LOG1P_MAX_ULP``; every
+other feature, edge and alignment stays exact.
+
 This single test pins: per-graph min-max normalization, ``normalize_voromqa``'s
 shift -> log1p -> min-max, the (min, max) edge canonicalization, the one-directional edge
 convention, the surface filter, and the ESM index alignment.
@@ -20,16 +26,32 @@ import torch
 from jbbind.core.features.build import build_chain_graph
 
 
+#: Node-feature column computed through float32 log1p (``normalize_voromqa``).
+LOG1P_COLUMN = 1
+#: 2 ULP measured with numpy's AVX-512 paths off; 4 leaves room for other CPUs. A real
+#: change to the normalization moves this column by far more than 4 ULP.
+LOG1P_MAX_ULP = 4
+
+
 def _build(fx):
     cg = build_chain_graph(fx.nodes, fx.links, fx.full_esm)
     assert cg is not None, f"{fx.chain}: build_chain_graph returned None"
     return cg
 
 
-def test_node_features_bit_identical(fx):
-    cg = _build(fx)
-    assert torch.equal(cg.graph.x, torch.from_numpy(fx.ref["x"])), (
-        f"{fx.chain}: node features differ from the reference")
+def assert_node_features_match(x: torch.Tensor, ref: np.ndarray, chain: str) -> None:
+    """Exact on every column but the log1p one, which may differ in the last places."""
+    x = x.numpy()
+    assert x.shape == ref.shape, f"{chain}: node features {x.shape} vs {ref.shape}"
+    exact = [c for c in range(ref.shape[1]) if c != LOG1P_COLUMN]
+    np.testing.assert_array_equal(x[:, exact], ref[:, exact],
+                                  err_msg=f"{chain}: node features differ from the reference")
+    np.testing.assert_array_max_ulp(x[:, LOG1P_COLUMN], ref[:, LOG1P_COLUMN],
+                                    maxulp=LOG1P_MAX_ULP)
+
+
+def test_node_features_match_reference(fx):
+    assert_node_features_match(_build(fx).graph.x, fx.ref["x"], fx.chain)
 
 
 def test_residue_type_bit_identical(fx):
@@ -90,7 +112,7 @@ def test_no_labels_required(fx):
     nodes = fx.nodes.drop(columns=[c for c in fx.nodes.columns if c.startswith("binds_")])
     cg = build_chain_graph(nodes, fx.links, fx.full_esm)
     assert cg is not None
-    assert torch.equal(cg.graph.x, torch.from_numpy(fx.ref["x"]))
+    assert_node_features_match(cg.graph.x, fx.ref["x"], fx.chain)
     assert cg.graph.y is None
 
 

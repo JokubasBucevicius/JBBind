@@ -2,7 +2,9 @@
 #
 # The research environment runs Python 3.13 / torch 2.10 / pandas 3.0. The container
 # pins the same majors so that tests/test_parity_tensors.py -- which asserts BIT-IDENTICAL
-# tensors against the original training code -- keeps passing inside the image. If those
+# tensors against the original training code (one float32 log1p column excepted, which
+# may differ by a few ULP between CPUs with and without AVX-512) -- keeps passing
+# inside the image. If those
 # assertions start failing at ~1e-7 after a bump, the fix is to pin back, not to relax the
 # assertion: the whole point is that the served model sees exactly what it was trained on.
 #
