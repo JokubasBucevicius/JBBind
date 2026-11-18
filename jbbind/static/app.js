@@ -47,10 +47,18 @@ async function toError(response) {
 
 /* ------------------------------------------------------------------ colour */
 
-/** Sequential ramp steps, read from CSS so light/dark stay in one place. */
-export function rampSteps() {
+/** Sequential ramp steps, read from CSS so light/dark stay in one place.
+ *  `kind` is a label's binding partner: "protein" is blue, "nucleic" is red.
+ *  "diverging" is the refined − raw ramp, orange (lowered) to purple (raised). */
+export function rampSteps(kind = "protein") {
   const s = getComputedStyle(document.documentElement);
-  return [0, 1, 2, 3, 4, 5, 6].map((i) => s.getPropertyValue(`--score-${i}`).trim());
+  const name = { nucleic: "--score-na-", diverging: "--score-div-" }[kind] || "--score-";
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => s.getPropertyValue(`${name}${i}`).trim());
+}
+
+/** "protein" or "nucleic" for a label of a setup, from /api/v1/meta. */
+export function labelKind(setup, index) {
+  return state.meta?.setups?.[setup]?.label_kinds?.[index] || "protein";
 }
 
 export function cssVar(name) {
@@ -105,7 +113,7 @@ export function scoreColor(p, { mode = "continuous", threshold = 0.5, steps = nu
 }
 
 /** Fixed architecture -> series slot. Never cycled, never rank-dependent. */
-export const ARCH_SLOT = { gnn_mlp: 1, joint: 2, mlp: 3, gnn: 4 };
+export const ARCH_SLOT = { gnn_mlp: 1, joint: 2, mlp: 3 };
 export const archColor = (arch) => cssVar(`--series-${ARCH_SLOT[arch] || 1}`);
 
 export const fmt = {
@@ -142,6 +150,37 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+/* ------------------------------------------------------------------- theme */
+
+/* "light", "dark" or "system". Stored per browser: it is how this viewer likes the
+   page, not a property of the predictions, so it does not belong in Settings. The
+   inline script in index.html applies it before first paint; this keeps it in step. */
+const THEME_KEY = "jbbind-theme";
+
+function storedTheme() {
+  try { return localStorage.getItem(THEME_KEY) || "system"; } catch { return "system"; }
+}
+
+function applyTheme(choice) {
+  if (choice === "light" || choice === "dark") {
+    document.documentElement.dataset.theme = choice;
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+  try { localStorage.setItem(THEME_KEY, choice); } catch { /* private window */ }
+  // Canvas, Mol* and the charts read colours from CSS when they draw; tell them.
+  window.dispatchEvent(new Event("themechange"));
+}
+
+function initTheme() {
+  const sel = document.getElementById("theme");
+  sel.value = storedTheme();
+  sel.addEventListener("change", () => applyTheme(sel.value));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (storedTheme() === "system") window.dispatchEvent(new Event("themechange"));
+  });
+}
+
 /* ------------------------------------------------------------------ router */
 
 const pages = {};
@@ -160,6 +199,7 @@ function show(name) {
 }
 
 async function boot() {
+  initTheme();
   document.getElementById("nav").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-page]");
     if (b) show(b.dataset.page);
@@ -174,8 +214,7 @@ async function boot() {
     state.meta = meta;
     state.models = models.models;
     state.settings = settings.settings;
-    document.getElementById("device-badge").textContent =
-      `${meta.device}${meta.cuda_available && meta.device === "cpu" ? " (GPU available)" : ""}`;
+    document.getElementById("device-badge").textContent = meta.device;
   } catch (err) {
     document.getElementById("device-badge").textContent = "offline";
     console.error("failed to load app metadata", err);

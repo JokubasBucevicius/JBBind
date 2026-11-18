@@ -55,7 +55,6 @@ function loadMolstar(src = MOLSTAR_SRC) {
 }
 
 const S = () => window.molstar.lib.structure;
-const T = () => window.molstar.lib.plugin.StateTransforms;
 const PluginConfig = () => window.molstar.lib.plugin.PluginConfig;
 
 /** "#rrggbb" -> the integer Mol* means by a Color. */
@@ -151,9 +150,13 @@ export async function loadStructure(pdbText) {
 /**
  * Rebuild the representations for the current scores.
  *
- * `colorOf(resi)` returns a CSS hex colour, `isHit(resi)` whether the residue is
- * at or above the threshold. Both are re-read for every residue on every call,
- * so the caller owns the ramp and this stays ignorant of setups and labels.
+ * `colorOf(resi)` returns a CSS hex colour. It is re-read for every residue on
+ * every call, so the caller owns the ramp and this stays ignorant of setups and
+ * labels.
+ *
+ * Cartoon and optional surface only. Side-chain sticks for the residues above the
+ * threshold used to be drawn too; they cluttered the fold and hid the colouring,
+ * and were removed.
  *
  * Representations are torn down and rebuilt rather than recoloured in place: the
  * colour theme carries no parameters, so Mol* has nothing to diff and would not
@@ -172,7 +175,7 @@ export function paint(spec) {
   return paintQueue;
 }
 
-async function rebuild({ colorOf, isHit, showSurface, showSticks, unpredicted }) {
+async function rebuild({ colorOf, showSurface, unpredicted }) {
   if (!plugin || !structure?.data) return;
   const struct = structure.data;
 
@@ -206,30 +209,25 @@ async function rebuild({ colorOf, isHit, showSurface, showSticks, unpredicted })
       color: SCORE_THEME,
     });
   }
-
-  if (showSticks) {
-    const bundle = bundleOf(struct, isHit);
-    if (bundle) {
-      const update = plugin.build();
-      const hits = update
-        .to(structure)
-        .apply(T().Model.StructureSelectionFromBundle, { bundle, label: "above threshold" });
-      await update.commit();
-      owned.push(hits.ref);
-      await plugin.builders.structure.representation.addRepresentation(hits.selector, {
-        type: "ball-and-stick",
-        typeParams: { sizeFactor: 0.22, aromaticBonds: false },
-        color: SCORE_THEME,
-      });
-    }
-  }
 }
 
-/** Frame one residue and highlight it, for a click on the track or the table. */
-export function focusResidue(resi) {
+/** Frame one residue and highlight it, for a click on the track or the table.
+ *  `neighbours` (its contacts) are highlighted with it, so a patch reads as one. */
+export function focusResidue(resi, neighbours = []) {
   const loci = lociOf(resi);
   if (!loci) return;
   plugin.managers.camera.focusLoci(loci);
+  highlightResidues([resi, ...neighbours]);
+}
+
+/** Highlight a set of residues at once, replacing any previous highlight. */
+export function highlightResidues(resis) {
+  const struct = structure?.data;
+  if (!plugin || !struct || !resis.length) return;
+  const want = new Set(resis);
+  const sub = subStructureOf(struct, (r) => want.has(r));
+  if (!sub) return;
+  const loci = S().Structure.toSubStructureElementLoci(struct, sub);
   plugin.managers.interactivity.lociHighlights.highlightOnly({ loci });
 }
 
@@ -281,12 +279,6 @@ function subStructureOf(struct, keep) {
   });
   if (unitId !== null) builder.commitUnit();
   return n ? builder.getStructure() : null;
-}
-
-/** A Bundle of every atom whose residue passes `keep`, or null if none do. */
-function bundleOf(struct, keep) {
-  const sub = subStructureOf(struct, keep);
-  return sub ? S().StructureElement.Bundle.fromSubStructure(struct, sub) : null;
 }
 
 /** A Loci for a single residue number, or null if it is not in the structure. */

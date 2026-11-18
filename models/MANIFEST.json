@@ -32,39 +32,6 @@
       "Nucleic acid"
     ]
   },
-  "protein_nucleic/gnn": {
-    "setup": "protein_nucleic",
-    "arch": "gnn",
-    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein_nucleic/gnn/model.pt",
-    "sha256": "b42cc3114d5e1d4181521d13b946e6eed24a2d4cb289b1597a3b89b1b5560798",
-    "size_bytes": 2441090,
-    "metrics": {
-      "F1 (Protein)": 0.39375258046818884,
-      "Precision (Protein)": 0.2864623801846273,
-      "Recall (Protein)": 0.6295357988446589,
-      "Bal Acc (Protein)": 0.6572496900122974,
-      "ROC AUC (Protein)": 0.718429046984567,
-      "PR AUC (Protein)": 0.3263323003162146,
-      "F1 (Nucleic acid)": 0.011978712024757988,
-      "Precision (Nucleic acid)": 0.0060389511668510806,
-      "Recall (Nucleic acid)": 0.729293594599045,
-      "Bal Acc (Nucleic acid)": 0.6802856999084552,
-      "ROC AUC (Nucleic acid)": 0.7480385798200643,
-      "PR AUC (Nucleic acid)": 0.012774960782138963,
-      "F1 (macro)": 0.2028656462464734,
-      "Precision (macro)": 0.1462506656757392,
-      "Recall (macro)": 0.679414696721852,
-      "ROC AUC (macro)": 0.7332338134023156,
-      "PR AUC (macro)": 0.16955363054917677,
-      "Bal Acc (macro)": 0.6687676949603762,
-      "Hamming Loss": 0.34636561558059764,
-      "Exact Match": 0.447469438747017
-    },
-    "label_names": [
-      "Protein",
-      "Nucleic acid"
-    ]
-  },
   "protein_nucleic/gnn_mlp": {
     "setup": "protein_nucleic",
     "arch": "gnn_mlp",
@@ -169,39 +136,6 @@
       "Hetero"
     ]
   },
-  "homo_hetero/gnn": {
-    "setup": "homo_hetero",
-    "arch": "gnn",
-    "source": "/home/jokubasb/protein_protein/all_class/training/runs/homo_hetero/gnn/model.pt",
-    "sha256": "949576aafbb88a8193a01f7fdf8c0c25d4a3a2f7cf2dd47114eac67db684da42",
-    "size_bytes": 2441026,
-    "metrics": {
-      "F1 (Homo)": 0.33059196791862844,
-      "Precision (Homo)": 0.21774954961071027,
-      "Recall (Homo)": 0.686190263952855,
-      "Bal Acc (Homo)": 0.6581760990641563,
-      "ROC AUC (Homo)": 0.718678711309596,
-      "PR AUC (Homo)": 0.2639397230672359,
-      "F1 (Hetero)": 0.15407559831108208,
-      "Precision (Hetero)": 0.08750132204724,
-      "Recall (Hetero)": 0.6442294190484701,
-      "Bal Acc (Hetero)": 0.6803712288921273,
-      "ROC AUC (Hetero)": 0.7482705772567104,
-      "PR AUC (Hetero)": 0.12372648567827327,
-      "F1 (macro)": 0.24233378311485526,
-      "Precision (macro)": 0.15262543582897514,
-      "Recall (macro)": 0.6652098415006625,
-      "ROC AUC (macro)": 0.7334746442831532,
-      "PR AUC (macro)": 0.19383310437275458,
-      "Bal Acc (macro)": 0.6692736639781418,
-      "Hamming Loss": 0.3244711600457819,
-      "Exact Match": 0.5408319979408985
-    },
-    "label_names": [
-      "Homo",
-      "Hetero"
-    ]
-  },
   "homo_hetero/gnn_mlp": {
     "setup": "homo_hetero",
     "arch": "gnn_mlp",
@@ -299,32 +233,6 @@
       "Protein"
     ]
   },
-  "protein/gnn": {
-    "setup": "protein",
-    "arch": "gnn",
-    "source": "/home/jokubasb/protein_protein/all_class/training/runs/protein/gnn/model.pt",
-    "sha256": "10cece1be6c8269d6c8e486c2ba99eaea8cf9a805629546ea8c84fcd0eea27a2",
-    "size_bytes": 2440002,
-    "metrics": {
-      "F1 (Protein)": 0.40627245136468143,
-      "Precision (Protein)": 0.2821906297697181,
-      "Recall (Protein)": 0.7251100064075506,
-      "Bal Acc (Protein)": 0.6734018256304513,
-      "ROC AUC (Protein)": 0.7399942247082131,
-      "PR AUC (Protein)": 0.3603911941147501,
-      "F1 (macro)": 0.40627245136468143,
-      "Precision (macro)": 0.2821906297697181,
-      "Recall (macro)": 0.7251100064075506,
-      "ROC AUC (macro)": 0.7399942247082131,
-      "PR AUC (macro)": 0.3603911941147501,
-      "Bal Acc (macro)": 0.6734018256304513,
-      "Hamming Loss": 0.3607053249532451,
-      "Exact Match": 0.6392946750467549
-    },
-    "label_names": [
-      "Protein"
-    ]
-  },
   "protein/gnn_mlp": {
     "setup": "protein",
     "arch": "gnn_mlp",
@@ -409,39 +317,6 @@
       "Bal Acc (macro)": 0.7848246749942895,
       "Hamming Loss": 0.07860207344690633,
       "Exact Match": 0.8608332479828844
-    },
-    "label_names": [
-      "DNA",
-      "RNA"
-    ]
-  },
-  "dna_rna/gnn": {
-    "setup": "dna_rna",
-    "arch": "gnn",
-    "source": "/home/jokubasb/protein_protein/all_class/training/runs/dna_rna/gnn/model.pt",
-    "sha256": "5f751c83bd122c4e38341cea95e117c52e68e482d75f1a4a94c3bcb801b6986c",
-    "size_bytes": 2441026,
-    "metrics": {
-      "F1 (DNA)": 0.24288510427681162,
-      "Precision (DNA)": 0.14593527805563816,
-      "Recall (DNA)": 0.7235924932975871,
-      "Bal Acc (DNA)": 0.6743214680032693,
-      "ROC AUC (DNA)": 0.732695778646097,
-      "PR AUC (DNA)": 0.19248461006175255,
-      "F1 (RNA)": 0.1390830213990523,
-      "Precision (RNA)": 0.07747378570567676,
-      "Recall (RNA)": 0.6792054099746407,
-      "Bal Acc (RNA)": 0.6196089131683233,
-      "ROC AUC (RNA)": 0.671682353980681,
-      "PR AUC (RNA)": 0.0960607176784203,
-      "F1 (macro)": 0.19098406283793196,
-      "Precision (macro)": 0.11170453188065746,
-      "Recall (macro)": 0.7013989516361139,
-      "ROC AUC (macro)": 0.702189066313389,
-      "PR AUC (macro)": 0.14427266387008642,
-      "Bal Acc (macro)": 0.6469651905857963,
-      "Hamming Loss": 0.40038598251084895,
-      "Exact Match": 0.5089735482042
     },
     "label_names": [
       "DNA",
@@ -540,32 +415,6 @@
       "Bal Acc (macro)": 0.8143162738788695,
       "Hamming Loss": 0.1252147986298408,
       "Exact Match": 0.8747852013701592
-    },
-    "label_names": [
-      "Nucleic acid"
-    ]
-  },
-  "nucleic/gnn": {
-    "setup": "nucleic",
-    "arch": "gnn",
-    "source": "/home/jokubasb/protein_protein/all_class/training/runs/nucleic/gnn/model.pt",
-    "sha256": "99672e1a2e113957ce22d88df1df26edfeecb7fb7ce45e66f690d10bf2521560",
-    "size_bytes": 2440002,
-    "metrics": {
-      "F1 (Nucleic acid)": 0.32044150110375275,
-      "Precision (Nucleic acid)": 0.21137548417159333,
-      "Recall (Nucleic acid)": 0.6620450606585788,
-      "Bal Acc (Nucleic acid)": 0.6633527801094778,
-      "ROC AUC (Nucleic acid)": 0.7207067729270602,
-      "PR AUC (Nucleic acid)": 0.2626807302043125,
-      "F1 (macro)": 0.32044150110375275,
-      "Precision (macro)": 0.21137548417159333,
-      "Recall (macro)": 0.6620450606585788,
-      "ROC AUC (macro)": 0.7207067729270602,
-      "PR AUC (macro)": 0.2626807302043125,
-      "Bal Acc (macro)": 0.6633527801094778,
-      "Hamming Loss": 0.33565213598796256,
-      "Exact Match": 0.6643478640120374
     },
     "label_names": [
       "Nucleic acid"

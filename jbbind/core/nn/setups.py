@@ -78,3 +78,12 @@ SETUPS: Dict[str, LabelSetup] = {
 }
 
 DEFAULT_SETUP = "protein_nucleic"
+
+#: Labels that mean "binds a nucleic acid". Every other label means "binds a
+#: protein". The kind picks the colour ramp: red for nucleic acid, blue for protein.
+NUCLEIC_ACID_LABELS = frozenset({"Nucleic acid", "DNA", "RNA"})
+
+
+def label_kind(label: str) -> str:
+    """``"nucleic"`` or ``"protein"`` — which partner a label is about."""
+    return "nucleic" if label in NUCLEIC_ACID_LABELS else "protein"

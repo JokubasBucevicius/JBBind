@@ -54,8 +54,8 @@ def build_chain_graph(nodes_df: pd.DataFrame,
     """Aggregate to surface residues, align the ESM embedding, and build the PyG graph.
 
     ``esm`` must be the layer-33 per-token embedding of the chain's **canonical (SEQRES)**
-    sequence, shape (L, 1280) with BOS/EOS already stripped. Pass None for the
-    structure-only ``gnn`` architecture.
+    sequence, shape (L, 1280) with BOS/EOS already stripped. None builds the
+    structural graph alone.
 
     Returns None if the chain has no surface residues, or if no residue falls inside the
     embedding (which for a correctly renumbered chain means the whole chain was past ESM's

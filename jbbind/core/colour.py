@@ -1,8 +1,12 @@
-"""The score colour ramp, shared by every rendering of a prediction.
+"""The score colour ramps, shared by every rendering of a prediction.
 
-Seven stops and an out-of-ramp grey, lifted verbatim from ``static/style.css``
-(``--score-0..6``, ``--unpredicted``), so the figure, the HTML report, the viewer
-scripts and the web viewer all colour a residue identically. The stylesheet's
+Two ramps, one per kind of binding partner: blue for protein-binding labels and
+red for nucleic-acid-binding labels (``setups.label_kind``). Each is seven stops,
+lifted verbatim from ``static/style.css`` (``--score-0..6`` and
+``--score-na-0..6``), plus one out-of-ramp grey (``--unpredicted``), so the
+figure, the HTML report, the viewer scripts and the web viewer all colour a
+residue identically. The red ramp matches the blue one's OKLab lightness step
+for step, so a score reads equally strong in either colour. The stylesheet's
 ramp is interpolated in OKLab by ``static/app.js``; the lookup table below
 reproduces that rather than letting matplotlib interpolate in sRGB, which would
 bend the midtones and make equal score steps read as unequal colour steps.
@@ -17,8 +21,15 @@ from __future__ import annotations
 
 import numpy as np
 
-SCORE_STOPS = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5",
-               "#2a78d6", "#1c5cab", "#0d366b"]
+from .nn.setups import label_kind
+
+PROTEIN_STOPS = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5",
+                 "#2a78d6", "#1c5cab", "#0d366b"]
+NUCLEIC_STOPS = ["#fad6d2", "#f1aea8", "#e4857e", "#d75853",
+                 "#c74845", "#9e3432", "#621b1a"]
+STOPS = {"protein": PROTEIN_STOPS, "nucleic": NUCLEIC_STOPS}
+#: The protein ramp, for callers that colour without a label.
+SCORE_STOPS = PROTEIN_STOPS
 UNPREDICTED_COLOR = "#b8b7b2"
 
 RAMP_SIZE = 256
@@ -60,7 +71,13 @@ def _build_lut(stops: list[str], n: int = RAMP_SIZE) -> np.ndarray:
     return out
 
 
-RAMP_LUT = _build_lut(SCORE_STOPS)
+LUTS = {kind: _build_lut(stops) for kind, stops in STOPS.items()}
+RAMP_LUT = LUTS["protein"]
+
+
+def stops_for(label: str | None) -> list[str]:
+    """The seven ramp stops for a label; the protein ramp when there is none."""
+    return STOPS[label_kind(label)] if label else PROTEIN_STOPS
 
 
 def ramp_index(p: float, n: int = RAMP_SIZE) -> int:
@@ -75,13 +92,15 @@ def ramp_index(p: float, n: int = RAMP_SIZE) -> int:
     return min(int(x * n), n - 1)
 
 
-def score_hex(p: float) -> str:
+def score_hex(p: float, label: str | None = None) -> str:
     """A score's colour as ``#rrggbb``, from the same table the figure uses."""
-    r, g, b = RAMP_LUT[ramp_index(p)]
+    lut = LUTS[label_kind(label)] if label else RAMP_LUT
+    r, g, b = lut[ramp_index(p)]
     return "#{:02x}{:02x}{:02x}".format(*(int(round(c * 255)) for c in (r, g, b)))
 
 
-def cmap():
-    """The ramp as a matplotlib colormap. Imports matplotlib; the figure only."""
+def cmap(label: str | None = None):
+    """A label's ramp as a matplotlib colormap. Imports matplotlib; the figure only."""
     from matplotlib.colors import ListedColormap
-    return ListedColormap(RAMP_LUT, name="jbbind")
+    kind = label_kind(label) if label else "protein"
+    return ListedColormap(LUTS[kind], name=f"jbbind-{kind}")

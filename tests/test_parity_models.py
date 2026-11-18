@@ -1,10 +1,10 @@
-"""Tier 2 — model-output equivalence for all 5 setups x 4 architectures.
+"""Tier 2 — model-output equivalence for all 5 setups x 3 architectures.
 
 Runs each exported checkpoint through JBBind's registry and compares against probabilities
 computed by the ORIGINAL ``train_multilabel`` classes on the same graph.
 
 This is what catches the failure modes that a tensor test cannot: a wrong reconstruction
-config for ``gnn``/``gnn_mlp`` (their checkpoints carry no ``model_config``), a missing
+config for ``gnn_mlp`` (its checkpoints carry no ``model_config``), a missing
 ``eval()``, returning ``mlp_logits`` instead of ``gnn_logits`` for ``joint``, and above all
 swapping the node-feature contract between ``gnn_mlp`` (69-d x) and ``joint`` (5-d x plus a
 separate ESM argument) -- which loads without error and predicts nonsense.
@@ -59,18 +59,26 @@ def test_probabilities_are_in_range(fx, registry):
         assert (p >= 0).all() and (p <= 1).all()
 
 
-def test_registry_lists_all_twenty(registry):
+def test_registry_lists_all_fifteen(registry):
     avail = registry.available()
-    assert len(avail) == 20
+    assert len(avail) == 15
     assert {(a["setup"], a["arch"]) for a in avail} == set(COMBOS)
     assert all(a["metrics"] for a in avail), "MANIFEST is missing metrics"
 
 
-def test_gnn_needs_no_embedding(fx, registry):
-    """The structure-only architecture must run with esm=None."""
-    cg = build_chain_graph(fx.nodes, fx.links, esm=None)
-    p = registry.get("protein", "gnn").predict(cg.graph, None, DEVICE)
-    assert p.shape == (cg.n_residues, 1)
+def test_structure_only_gnn_is_gone(registry):
+    """The structure-only GNN was removed from the app, checkpoints included."""
+    assert "gnn" not in ARCHS
+    assert not any(a["arch"] == "gnn" for a in registry.available())
+    with pytest.raises(KeyError):
+        registry.get("protein", "gnn")
+
+
+def test_registry_keeps_one_copy_per_device(registry):
+    """A CPU run must get CPU weights, not CPU inputs fed to GPU weights."""
+    a = registry.get("protein", "mlp", torch.device("cpu"))
+    assert registry.get("protein", "mlp", "cpu") is a
+    assert next(a.model.parameters()).device.type == "cpu"
 
 
 # --- negative controls ---------------------------------------------------------------

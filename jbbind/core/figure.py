@@ -34,9 +34,7 @@ from matplotlib.colors import Normalize                      # noqa: E402
 from matplotlib.gridspec import GridSpec                     # noqa: E402
 
 from .artifacts import slug                                  # noqa: E402
-from .colour import SCORE_STOPS, UNPREDICTED_COLOR, cmap     # noqa: E402
-
-CMAP = cmap()
+from .colour import UNPREDICTED_COLOR, cmap, stops_for      # noqa: E402
 
 # plt.figure/plt.close touch a process-global figure manager, so two threads
 # rendering at once can interleave and lose figures. The web app serves figures
@@ -62,7 +60,7 @@ def ca_coordinates(receptor_pdb: str) -> dict[int, np.ndarray]:
     return coords
 
 
-def _draw_structure(ax, xyz, order, scores, title, azim):
+def _draw_structure(ax, xyz, order, scores, title, azim, cm):
     """CA trace in 3D, residues coloured by score.
 
     Unscored residues (buried, or past ESM's 1022-token limit under ``truncate``) are drawn in the
@@ -81,7 +79,7 @@ def _draw_structure(ax, xyz, order, scores, title, azim):
         # Draw ascending so the confident residues land on top of the pale ones.
         idx = np.argsort(vals[known])
         pts = xyz[known][idx]
-        ax.scatter(*pts.T, s=30, c=vals[known][idx], cmap=CMAP, vmin=0, vmax=1,
+        ax.scatter(*pts.T, s=30, c=vals[known][idx], cmap=cm, vmin=0, vmax=1,
                    depthshade=False, linewidths=0.3, edgecolors="#ffffff", zorder=3)
 
     ax.set_title(title, fontsize=8, color="#55554f", pad=0)
@@ -118,6 +116,9 @@ def make_figure(result, setup: str, label_index: int, threshold: float,
 
 def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
     label = result.label_names[setup][label_index]
+    # Blue ramp for a protein-binding label, red for a nucleic-acid one.
+    cm = cmap(label)
+    stops = stops_for(label)
     residues = result.residues
     scored = {r.seqres_index: r.probs[setup][label_index] for r in residues}
 
@@ -137,7 +138,9 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
     fig.suptitle(f"JBBind · {result.source} chain {result.chain_id} · "
                  f"{setup}:{label}", fontsize=13, fontweight="bold", y=0.968)
     fig.text(0.5, 0.925,
-             f"{result.arch} · {len(residues)} residues scored, "
+             f"{result.arch}"
+             f"{' (refined over contacts)' if getattr(result, 'score_source', 'raw') == 'refined' else ''}"
+             f" · {len(residues)} residues scored, "
              f"{len(result.unpredicted)} not predicted · "
              f"{len(hits)} at or above {threshold:g}"
              f"   —   scores rank residues; they are not calibrated probabilities",
@@ -147,7 +150,7 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
         for col, azim in ((0, -60), (1, 30)):
             ax = fig.add_subplot(gs[0, col], projection="3d")
             _draw_structure(ax, xyz, order, scores3d,
-                            f"view {1 if col == 0 else 2}", azim)
+                            f"view {1 if col == 0 else 2}", azim, cm)
 
     # -- top residues ---------------------------------------------------------
     ax = fig.add_subplot(gs[0, 2])
@@ -172,7 +175,7 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
                 cell.set_facecolor("#f7f6f3")
             else:
                 p = ranked[row - 1].probs[setup][label_index]
-                cell.set_facecolor(CMAP(p) if p >= threshold else "#ffffff")
+                cell.set_facecolor(cm(p) if p >= threshold else "#ffffff")
                 if p >= threshold and p > 0.62:
                     cell.set_text_props(color="#ffffff")
 
@@ -180,7 +183,7 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
     ax = fig.add_subplot(gs[1, :2])
     idx = np.array([r.seqres_index for r in residues])
     val = np.array([r.probs[setup][label_index] for r in residues])
-    ax.bar(idx, val, width=1.0, color=[CMAP(v) for v in val], linewidth=0)
+    ax.bar(idx, val, width=1.0, color=[cm(v) for v in val], linewidth=0)
     ax.axhline(threshold, color="#eb6834", lw=1.0, ls="--", zorder=4)
     ax.text(ax.get_xlim()[1], threshold, f" {threshold:g} ", va="center", ha="left",
             fontsize=7.5, color="#eb6834")
@@ -201,7 +204,7 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
         ax.annotate(f"{r.one_letter}{r.auth_seq_id}".strip(),
                     (r.seqres_index, r.probs[setup][label_index]),
                     textcoords="offset points", xytext=(0, 4 + 9 * near), ha="center",
-                    fontsize=7, color="#1c5cab")
+                    fontsize=7, color=stops[5])
     ax.set_xlabel("residue (SEQRES index)", fontsize=9)
     ax.set_ylabel(f"{label} score", fontsize=9)
     # Headroom for however many levels the labels stacked to, without moving the ticks:
@@ -216,8 +219,8 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
     # -- ranked curve ----------------------------------------------------------
     ax = fig.add_subplot(gs[1, 2])
     srt = np.sort(val)[::-1] if len(val) else np.zeros(0)
-    ax.plot(np.arange(1, len(srt) + 1), srt, color="#2a78d6", lw=1.6)
-    ax.fill_between(np.arange(1, len(srt) + 1), srt, color="#2a78d6", alpha=0.13)
+    ax.plot(np.arange(1, len(srt) + 1), srt, color=stops[4], lw=1.6)
+    ax.fill_between(np.arange(1, len(srt) + 1), srt, color=stops[4], alpha=0.13)
     ax.axhline(threshold, color="#eb6834", lw=1.0, ls="--")
     if len(hits):
         ax.axvline(len(hits), color="#eb6834", lw=1.0, ls=":")
@@ -231,7 +234,7 @@ def _render(result, setup, label_index, threshold, out_png, top_n) -> None:
         ax.spines[side].set_visible(False)
 
     cax = fig.add_axes([0.20, 0.468, 0.24, 0.015])
-    fig.colorbar(plt.cm.ScalarMappable(norm=Normalize(0, 1), cmap=CMAP),
+    fig.colorbar(plt.cm.ScalarMappable(norm=Normalize(0, 1), cmap=cm),
                  cax=cax, orientation="horizontal")
     cax.tick_params(labelsize=7.5, length=2)
     cax.set_title(f"{label} score", fontsize=7.5, color="#55554f", pad=3)

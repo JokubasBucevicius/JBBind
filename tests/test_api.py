@@ -103,6 +103,14 @@ def test_invalid_settings_are_rejected(tmp_path, patch):
         store.update(patch)
 
 
+def test_a_saved_gnn_arch_falls_back_to_the_default(tmp_path):
+    """settings.json written before the GNN was removed must not break predictions."""
+    (tmp_path / "settings.json").write_text(
+        json.dumps({"arch": "gnn", "show_sidechains": True, "threshold": 0.6}))
+    s = UserSettingsStore(tmp_path / "settings.json").get()
+    assert s.arch == "gnn_mlp" and s.threshold == 0.6
+
+
 def test_unknown_setting_key_is_rejected(tmp_path):
     store = UserSettingsStore(tmp_path / "settings.json")
     with pytest.raises(ValueError):
@@ -143,13 +151,16 @@ def test_meta_lists_setups_and_archs(client):
     body = r.json()
     assert set(body["setups"]) == {"protein_nucleic", "homo_hetero", "protein",
                                    "dna_rna", "nucleic"}
-    assert body["archs"][0] == "gnn_mlp"
+    assert body["archs"] == ["gnn_mlp", "joint", "mlp"]
+    assert body["setups"]["protein_nucleic"]["label_kinds"] == ["protein", "nucleic"]
+    assert body["setups"]["dna_rna"]["label_kinds"] == ["nucleic", "nucleic"]
 
 
-def test_models_endpoint_reports_all_twenty(client):
+def test_models_endpoint_reports_all_fifteen(client):
     c, _, _ = client
     body = c.get("/api/v1/models").json()
-    assert len(body["models"]) == 20
+    assert len(body["models"]) == 15
+    assert not any(m["arch"] == "gnn" for m in body["models"])
     assert all(m["metrics"] for m in body["models"])
 
 
@@ -331,3 +342,146 @@ def test_index_does_not_block_first_paint_on_molstar():
     assert "vendor/molstar.js" not in html          # viewer.js fetches it on first use
     js = (Path(__file__).parents[1] / "jbbind/static/viewer.js").read_text()
     assert "/static/vendor/molstar.js" in js
+
+
+# ------------------------------------------------------------------- device
+
+def test_server_runs_on_the_cpu_only(client, monkeypatch):
+    """The hosting server has no GPU; a visible one must not change that."""
+    c, _, _ = client
+    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+    assert Settings().device.type == "cpu"
+    meta = c.get("/api/v1/meta").json()
+    assert meta["device"] == "cpu" and "cuda_available" not in meta
+
+
+def test_device_is_no_longer_a_setting(tmp_path):
+    assert "device" not in UserSettings.__dataclass_fields__
+    with pytest.raises(ValueError):
+        UserSettingsStore(tmp_path / "settings.json").update({"device": "cpu"})
+
+
+def test_settings_file_from_before_the_removal_still_loads(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"device": "cuda", "threshold": 0.7}))
+    assert UserSettingsStore(path).get().threshold == 0.7
+
+
+def test_old_page_sending_a_device_does_not_break_predict(client):
+    """A tab still running the old JS sends settings.device; it is ignored."""
+    c, app_state, _ = client
+    assert app_state.effective_settings({"device": "cuda", "threshold": 0.3}).threshold == 0.3
+
+
+def test_predict_page_offers_no_device_choice():
+    src = (ROOT / "jbbind/static/predict.js").read_text()
+    assert "settings: refineSettings()," in src
+    html = (ROOT / "jbbind/static/index.html").read_text()
+    assert 'id="device"' not in html and "GPU" not in html
+    assert "cuda" not in (ROOT / "jbbind/static/settings.js").read_text()
+
+
+# ----------------------------------------------------------------- display
+
+@pytest.mark.parametrize("page", ["jbbind/static/index.html", "jbbind/static/predict.js",
+                                  "jbbind/static/settings.js", "jbbind/static/viewer.js",
+                                  "jbbind/report_template.html"])
+def test_side_chain_sticks_are_gone(page):
+    src = (ROOT / page).read_text().lower()
+    for token in ("show-sidechains", "show_sidechains", "show-sticks", "showsticks",
+                  "ball-and-stick"):
+        assert token not in src, token
+
+
+def test_hidden_really_hides():
+    """.status sets display:flex, which beats the browser's [hidden] rule; without this
+    override the status bar and its spinner never go away after a prediction."""
+    css = (ROOT / "jbbind/static/style.css").read_text()
+    assert "[hidden] { display: none !important; }" in css
+
+
+def test_theme_picker_offers_light_dark_and_system():
+    html = (ROOT / "jbbind/static/index.html").read_text()
+    for value in ("system", "light", "dark"):
+        assert f'<option value="{value}">' in html
+    # Applied before the stylesheet, so a dark choice does not flash light first.
+    assert html.index('localStorage.getItem("jbbind-theme")') < html.index("style.css")
+    app = (ROOT / "jbbind/static/app.js").read_text()
+    assert "document.documentElement.dataset.theme = choice" in app
+    css = (ROOT / "jbbind/static/style.css").read_text()
+    assert ':root[data-theme="dark"]' in css and ':root:not([data-theme="light"])' in css
+
+
+# -------------------------------------------------------------- refinement
+
+def _with_contacts(res: PredictionResult) -> PredictionResult:
+    from dataclasses import replace
+    from jbbind.core.refine import ContactGraph
+    return replace(res, contacts=ContactGraph.from_edges([1, 2], [1], [2], [30.0]))
+
+
+def test_refine_endpoint_rescores_without_rerunning_the_model(client):
+    c, state, res = client
+    state.results["refinejob"] = _with_contacts(res)
+    r = c.post("/api/v1/jobs/refinejob/refine",
+               json={"refine_method": "bayes", "refine_strength": 1.0})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["refinement"]["method"] == "bayes"
+    low = body["residues"][1]
+    # residue 2 (0.30) touches residue 1 (0.91), so its protein score rises
+    assert low["pr"]["protein_nucleic"][0] > low["p"]["protein_nucleic"][0] == 0.30
+    assert low["nb"] == [] and body["has_contacts"]      # nb is filled by predict
+
+    # downloads follow the job's refinement
+    csv = c.get("/api/v1/artifacts/refinejob/predictions.csv").text
+    assert "protein_nucleic:Protein:refined" in csv.splitlines()[0]
+    raw = c.get("/api/v1/artifacts/refinejob/predictions.pdb?setup=protein_nucleic").text
+    ref = c.get("/api/v1/artifacts/refinejob/predictions.pdb"
+                "?setup=protein_nucleic&source=refined").text
+    assert raw != ref and "REMARK 100 refined" in ref
+    for path in ("pymol.txt", "session.pml", "session.cxc", "figure.png"):
+        assert c.get(f"/api/v1/artifacts/refinejob/{path}"
+                     "?setup=protein_nucleic&source=refined").status_code == 200
+    html = c.get("/api/v1/artifacts/refinejob/report.html?source=refined").text
+    assert "Bayesian log-odds pooling" in html
+
+    r = c.post("/api/v1/jobs/refinejob/refine", json={"refine_method": "gumbel"})
+    assert r.json()["residues"][0]["psd"] is not None
+    assert "refined_sd" in c.get("/api/v1/artifacts/refinejob/predictions.csv").text
+
+
+def test_refine_endpoint_rejects_other_settings_and_bad_values(client):
+    c, state, res = client
+    state.results["refinejob"] = _with_contacts(res)
+    r = c.post("/api/v1/jobs/refinejob/refine", json={"arch": "mlp"})
+    assert r.json()["code"] == "InvalidSettings"
+    r = c.post("/api/v1/jobs/refinejob/refine", json={"refine_strength": 3})
+    assert r.json()["code"] == "InvalidSettings"
+    assert c.post("/api/v1/jobs/nope/refine", json={}).status_code == 404
+
+
+def test_refining_a_result_without_contacts_is_a_409(client):
+    c, _, _ = client
+    r = c.post("/api/v1/jobs/testjob/refine", json={"refine_method": "bayes"})
+    assert r.status_code == 409 and r.json()["code"] == "RefinementUnavailable"
+
+
+def test_refined_downloads_need_a_refinement(client):
+    c, _, _ = client
+    r = c.get("/api/v1/artifacts/testjob/predictions.pdb"
+              "?setup=protein_nucleic&source=refined")
+    assert r.status_code == 409
+    assert c.get("/api/v1/artifacts/testjob/predictions.pdb"
+                 "?setup=protein_nucleic&source=bogus").status_code == 409
+
+
+def test_predict_page_offers_refinement_and_shows_the_change():
+    html = (ROOT / "jbbind/static/index.html").read_text()
+    for value in ("none", "bayes", "gumbel"):
+        assert f'<option value="{value}"' in html
+    assert 'id="score-source"' in html and '<option value="change">' in html
+    js = (ROOT / "jbbind/static/predict.js").read_text()
+    assert "/refine`" in js and "&source=${source}" in js
+    css = (ROOT / "jbbind/static/style.css").read_text()
+    assert css.count("--score-div-6:") == 3                 # light, dark, forced dark

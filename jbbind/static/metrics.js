@@ -3,7 +3,7 @@
  * Data comes from models/METRICS.json, precomputed by scripts/export_models.py from the
  * training runs' metrics.json + predictions.npz (curves downsampled to ~200 points).
  *
- * Colour: the four architectures occupy fixed categorical slots 1-4 (never cycled, never
+ * Colour: the three architectures occupy fixed categorical slots 1-3 (never cycled, never
  * rank-dependent), validated on the adjacent pairlist in both modes.
  * Two light-mode slots sit under 3:1 on the light surface, so
  * the relief rule applies and every chart here ships direct labels AND a table view.
@@ -11,8 +11,8 @@
 
 import { api, archColor, cssVar, el, fmt, state } from "/static/app.js";
 
-const ARCH_ORDER = ["gnn_mlp", "joint", "mlp", "gnn"];
-const ARCH_LABEL = { gnn_mlp: "GNN+MLP", joint: "Joint", mlp: "MLP", gnn: "GNN" };
+const ARCH_ORDER = ["gnn_mlp", "joint", "mlp"];
+const ARCH_LABEL = { gnn_mlp: "GNN+MLP", joint: "Joint", mlp: "MLP" };
 let metrics = null;
 let loaded = false;
 
@@ -20,6 +20,8 @@ const $ = (id) => document.getElementById(id);
 
 export function init() {
   $("m-setup").addEventListener("change", render);
+  // Chart colours are read from CSS at draw time, so a theme switch redraws them.
+  window.addEventListener("themechange", () => { if (metrics) render(); });
 }
 
 export async function onShow() {
@@ -160,8 +162,8 @@ function comparisonCard(setup, node, labels) {
   return el("div", { class: "card" },
     el("h3", {}, "Architecture comparison"),
     el("p", { class: "sub" },
-      "Higher is better. The structure-only GNN is the control: the gap between it and " +
-      "everything else is the contribution of the ESM-2 sequence embedding."),
+      "Higher is better. MLP sees only the sequence; GNN+MLP and Joint also see the " +
+      "protein structure."),
     legend(archs),
     el("div", { class: "chart-grid" }, ...groups.map(groupedBars)),
     el("div", { class: "chart-scroll", style: { marginTop: "16px" } },

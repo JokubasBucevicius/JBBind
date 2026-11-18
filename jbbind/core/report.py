@@ -25,7 +25,9 @@ from pathlib import Path
 
 import numpy as np
 
-from .colour import SCORE_STOPS, UNPREDICTED_COLOR, score_hex
+from .artifacts import describe_refinement
+from .colour import NUCLEIC_STOPS, PROTEIN_STOPS, STOPS, UNPREDICTED_COLOR, score_hex
+from .nn.setups import label_kind
 
 PACKAGE = Path(__file__).resolve().parent.parent
 REPORT_TEMPLATE = PACKAGE / "report_template.html"
@@ -58,7 +60,8 @@ def report_data(result, setups, threshold: float, name: str) -> dict:
     Colours are resolved here rather than in the page so the ramp keeps a single
     definition: the report, the PNG and the viewer scripts all inherit ``CMAP``.
     The page only has to pick between the two endpoint colours for the
-    above/below-threshold mode, which needs no interpolation.
+    above/below-threshold mode, which needs no interpolation. Each label is
+    coloured on its own ramp: blue for protein binding, red for nucleic acid.
     """
     residues = []
     for r in result.residues:
@@ -71,15 +74,22 @@ def report_data(result, setups, threshold: float, name: str) -> dict:
             "aa": r.one_letter,
             "sas": None if np.isnan(sas) else round(sas, 2),
             "p": {s: [round(float(v), 6) for v in r.probs[s]] for s in setups},
-            "c": {s: [score_hex(v) for v in r.probs[s]] for s in setups},
+            "c": {s: [score_hex(v, name)
+                      for v, name in zip(r.probs[s], result.label_names[s])]
+                  for s in setups},
         })
     return {
         "name": name,
         "source": result.source,
         "chain": result.chain_id,
         "arch": result.arch,
+        # Named in the header only when the page shows refined scores.
+        "scoreSource": (f"refined: {describe_refinement(result.refinement)}"
+                        if getattr(result, "score_source", "raw") == "refined" else None),
         "setups": list(setups),
         "labels": {s: list(result.label_names[s]) for s in setups},
+        "kinds": {s: [label_kind(name) for name in result.label_names[s]]
+                  for s in setups},
         "threshold": threshold,
         "sequence": result.sequence,
         "residues": residues,
@@ -88,8 +98,8 @@ def report_data(result, setups, threshold: float, name: str) -> dict:
         "nPredicted": result.n_predicted,
         "nUnpredicted": len(result.unpredicted),
         "unpredicted": UNPREDICTED_COLOR,
-        "rampLo": SCORE_STOPS[0],
-        "rampHi": SCORE_STOPS[-1],
+        "ramps": {kind: {"lo": stops[0], "hi": stops[-1]}
+                  for kind, stops in STOPS.items()},
         "generated": time.strftime("%Y-%m-%d %H:%M"),
     }
 
@@ -135,7 +145,8 @@ def report_html(result, setups, threshold: float, name: str,
     fills = {
         "TITLE": f"JBBind — {name}",
         "HEADING": f"{result.source} · chain {result.chain_id}",
-        "RAMP_CSS": ", ".join(SCORE_STOPS),
+        "RAMP_CSS": ", ".join(PROTEIN_STOPS),
+        "RAMP_NA_CSS": ", ".join(NUCLEIC_STOPS),
         "MOLSTAR_CSS": css,
         "MOLSTAR_JS": js,
         "VIEWER_JS": deexport(VIEWER_JS.read_text(encoding="utf-8")),

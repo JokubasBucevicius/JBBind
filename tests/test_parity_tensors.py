@@ -95,7 +95,7 @@ def test_no_labels_required(fx):
 
 
 def test_structure_only_path_needs_no_esm(fx):
-    """The `gnn` architecture takes no embedding; the graph must be identical."""
+    """Without an embedding the graph must be identical."""
     cg = build_chain_graph(fx.nodes, fx.links, esm=None)
     assert cg.esm is None
     if not fx.ref["id_resseq"].shape[0] == cg.n_residues:

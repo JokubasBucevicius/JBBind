@@ -34,8 +34,9 @@ import numpy as np
 
 REPO_DEFAULT = "/home/jokubasb/protein_protein"
 SETUPS = ["protein_nucleic", "homo_hetero", "protein", "dna_rna", "nucleic"]
-ARCHS = ["mlp", "gnn", "gnn_mlp", "joint"]
-ARCH_DISPLAY = {"mlp": "MLP", "gnn": "GNN", "gnn_mlp": "GNN+MLP", "joint": "Joint"}
+# The training runs also hold a structure-only "gnn"; it is deliberately not exported.
+ARCHS = ["mlp", "gnn_mlp", "joint"]
+ARCH_DISPLAY = {"mlp": "MLP", "gnn_mlp": "GNN+MLP", "joint": "Joint"}
 N_CURVE_POINTS = 200
 
 
@@ -221,7 +222,8 @@ def main() -> int:
             if not pcm.exists():
                 continue
             with open(pcm) as f:
-                rows = list(csv.DictReader(f))
+                rows = [r for r in csv.DictReader(f)
+                        if not r.get("", "").startswith("GNN (")]
             metrics_doc["three_class"][sub.name] = rows
             print(f"  three_class/{sub.name}: {len(rows)} rows")
 

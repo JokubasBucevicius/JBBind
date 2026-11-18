@@ -44,7 +44,8 @@ class EsmEmbedder:
 
     The model is ~2.6 GB in fp32 and forwards are serialized behind a lock: holding one
     copy and queueing is the right trade for a service that also has to fit a torch runtime
-    and a web server in memory.
+    and a web server in memory. A prediction sent to the other device loads a second copy
+    there on first use (GPU memory for ``cuda``, RAM for ``cpu``) and keeps it.
     """
 
     def __init__(self, device: torch.device, cache=None,
@@ -52,29 +53,28 @@ class EsmEmbedder:
         self.device = device
         self.cache = cache
         self.long_seq_mode = long_seq_mode
-        self._model = None
-        self._alphabet = None
+        self._models: dict[str, torch.nn.Module] = {}
         self._converter = None
         self._lock = threading.Lock()
 
     # -- lifecycle ---------------------------------------------------------------
 
-    def load(self) -> None:
-        if self._model is not None:
-            return
+    def load(self, device: Optional[torch.device] = None) -> torch.nn.Module:
+        device = torch.device(device) if device is not None else self.device
+        key = str(device)
+        if key in self._models:
+            return self._models[key]
         with self._lock:
-            if self._model is not None:
-                return
-            import esm
-            model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-            model.eval().to(self.device)
-            self._model = model
-            self._alphabet = alphabet
-            self._converter = alphabet.get_batch_converter()
+            if key not in self._models:
+                import esm
+                model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+                self._models[key] = model.eval().to(device)
+                self._converter = alphabet.get_batch_converter()
+            return self._models[key]
 
     @property
     def loaded(self) -> bool:
-        return self._model is not None
+        return str(self.device) in self._models
 
     # -- embedding ---------------------------------------------------------------
 
@@ -82,8 +82,9 @@ class EsmEmbedder:
     def cache_key(sequence: str, mode: str) -> str:
         return hashlib.sha256(f"{MODEL_NAME}|{LAYER}|{mode}|{sequence}".encode()).hexdigest()
 
-    def embed(self, sequence: str) -> tuple[torch.Tensor, list[dict]]:
-        """Per-residue layer-33 embedding of ``sequence``.
+    def embed(self, sequence: str,
+              device: Optional[torch.device] = None) -> tuple[torch.Tensor, list[dict]]:
+        """Per-residue layer-33 embedding of ``sequence``, computed on ``device``.
 
         Returns ``(tensor, warnings)``. The tensor has one row per input residue in
         ``tile`` mode, or ``min(len(sequence), 1022)`` rows in ``truncate`` mode — the
@@ -98,7 +99,7 @@ class EsmEmbedder:
                 arr = np.load(path)
                 return torch.from_numpy(arr), self._length_warnings(sequence, arr.shape[0])
 
-        tensor = self._compute(sequence)
+        tensor = self._compute(sequence, device)
 
         if self.cache is not None:
             def produce(tmp: Path) -> None:
@@ -126,22 +127,22 @@ class EsmEmbedder:
         }]
 
     @torch.inference_mode()
-    def _compute(self, sequence: str) -> torch.Tensor:
-        self.load()
+    def _compute(self, sequence: str, device: Optional[torch.device]) -> torch.Tensor:
+        model = self.load(device)
         if len(sequence) <= MAX_TOKENS or self.long_seq_mode == "truncate":
-            return self._forward(sequence[:MAX_TOKENS]).cpu()
-        return self._forward_tiled(sequence).cpu()
+            return self._forward(model, sequence[:MAX_TOKENS]).cpu()
+        return self._forward_tiled(model, sequence).cpu()
 
-    def _forward(self, sequence: str) -> torch.Tensor:
+    def _forward(self, model: torch.nn.Module, sequence: str) -> torch.Tensor:
         with self._lock:
             _, _, tokens = self._converter([("query", sequence)])
-            tokens = tokens.to(self.device)
-            out = self._model(tokens, repr_layers=[LAYER], return_contacts=False)
+            tokens = tokens.to(next(model.parameters()).device)
+            out = model(tokens, repr_layers=[LAYER], return_contacts=False)
             # Strip BOS; take exactly len(sequence) rows, dropping EOS. Mirrors
             # extract.py's `t[i, 1:truncate_len + 1]`.
             return out["representations"][LAYER][0, 1:len(sequence) + 1].float()
 
-    def _forward_tiled(self, sequence: str) -> torch.Tensor:
+    def _forward_tiled(self, model: torch.nn.Module, sequence: str) -> torch.Tensor:
         """Overlapping windows; each residue takes the window where it is most central.
 
         Out of distribution relative to training — the models never saw an embedding
@@ -153,7 +154,7 @@ class EsmEmbedder:
         best = np.full(len(sequence), np.inf)
         for start in range(0, len(sequence), stride):
             end = min(start + MAX_TOKENS, len(sequence))
-            chunk = self._forward(sequence[start:end]).cpu()
+            chunk = self._forward(model, sequence[start:end]).cpu()
             centre = (start + end - 1) / 2.0
             for i in range(start, end):
                 d = abs(i - centre)

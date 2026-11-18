@@ -9,8 +9,8 @@
 /* A report is a light document, like the PNG next to it. The web app flips its
    ramp in dark mode so low scores stay legible on a dark ground; a file you send
    to someone must not change what a colour means with the reader's OS setting,
-   so this page pins one ramp — the same one the figure and the viewer scripts
-   use — and one light surface. */
+   so this page pins the light ramps — blue for protein, red for nucleic acid,
+   the same ones the figure and the viewer scripts use — and one light surface. */
 :root {
   color-scheme: light;
   --surface-0: #ffffff;
@@ -92,6 +92,7 @@ input[type="range"] { width: 160px; accent-color: var(--accent); }
   flex: 1; height: 10px; border-radius: 5px; position: relative;
   background: linear-gradient(to right, {{RAMP_CSS}});
 }
+.legend .ramp.nucleic { background: linear-gradient(to right, {{RAMP_NA_CSS}}); }
 .legend .ramp .tick {
   position: absolute; top: -3px; bottom: -3px; width: 2px;
   background: var(--text-primary); border-radius: 1px;
@@ -168,15 +169,15 @@ footer code { font-family: var(--mono); }
       <div class="field">
         <label>Display</label>
         <div class="checks">
-          <label><input type="checkbox" id="show-sticks" checked> Sticks above threshold</label>
           <label><input type="checkbox" id="show-surface"> Molecular surface</label>
         </div>
       </div>
     </div>
     <div id="viewer"></div>
     <div class="legend">
+      <span id="ramp-label"></span>
       <span class="mono">0</span>
-      <div class="ramp"><div class="tick" id="ramp-tick"></div></div>
+      <div class="ramp" id="ramp"><div class="tick" id="ramp-tick"></div></div>
       <span class="mono">1</span>
       <span class="chip"><i></i> not predicted</span>
     </div>
@@ -244,24 +245,18 @@ return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
 
   /* -------------------------------------------------------------- colours */
 
-  // Continuous colours are precomputed by predict_bindingsites.py from the same
-  // OKLab ramp the figure uses, so no ramp is reimplemented here and a residue
-  // is the same colour in the report, the PNG and the viewer scripts.
-  function scoreAt(resi) {
-    var r = byResi.get(resi);
-    return r ? r.p[setup][label] : null;
-  }
+  // Continuous colours are precomputed by jbbind/core/report.py from the same
+  // OKLab ramps the figure uses (blue for protein, red for nucleic acid), so no
+  // ramp is reimplemented here and a residue is the same colour in the report,
+  // the PNG and the viewer scripts.
   function colorAt(resi) {
     var r = byResi.get(resi);
     if (!r) return DATA.unpredicted;
     if (mode === "threshold") {
-      return r.p[setup][label] >= threshold ? DATA.rampHi : DATA.rampLo;
+      var ramp = DATA.ramps[DATA.kinds[setup][label]];
+      return r.p[setup][label] >= threshold ? ramp.hi : ramp.lo;
     }
     return r.c[setup][label];
-  }
-  function isHit(resi) {
-    var p = scoreAt(resi);
-    return p !== null && p >= threshold;
   }
 
   /* --------------------------------------------------------------- header */
@@ -270,10 +265,12 @@ return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
     $("meta").innerHTML = "";
     [DATA.source + " · chain " + DATA.chain,
      DATA.arch,
+     DATA.scoreSource,
      DATA.nPredicted + " residues scored",
      DATA.nUnpredicted + " not predicted",
      DATA.sequence.length + " in sequence",
      DATA.generated].forEach(function (t) {
+      if (!t) return;
       var s = document.createElement("span");
       s.textContent = t;
       $("meta").appendChild(s);
@@ -321,7 +318,6 @@ return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
     $("colormode").addEventListener("change", function () {
       mode = $("colormode").value; repaint();
     });
-    $("show-sticks").addEventListener("change", repaint);
     $("show-surface").addEventListener("change", repaint);
 
     $("restable").querySelector("thead").addEventListener("click", function (e) {
@@ -382,6 +378,9 @@ return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
   function repaint() {
     $("thr-value").textContent = threshold.toFixed(2);
     $("ramp-tick").style.left = (threshold * 100) + "%";
+    // Blue ramp for a protein-binding label, red for a nucleic-acid one.
+    $("ramp").className = "ramp" + (DATA.kinds[setup][label] === "nucleic" ? " nucleic" : "");
+    $("ramp-label").textContent = DATA.labels[setup][label] + " score";
     drawTrack();
     renderTable();
     clearTimeout(paintTimer);
@@ -393,9 +392,7 @@ return { mount, loadStructure, paint, focusResidue, resetCamera, resize,
     if (!JBViewer.isReady()) return;
     JBViewer.paint({
       colorOf: colorAt,
-      isHit: isHit,
       showSurface: $("show-surface").checked,
-      showSticks: $("show-sticks").checked,
       unpredicted: DATA.unpredicted
     })["catch"](function (err) { console.error("could not repaint the viewer", err); });
   }

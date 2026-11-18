@@ -1,6 +1,6 @@
 /* Predict page: viewer wiring, sequence track, residue table, downloads. */
 
-import { api, cssVar, el, fmt, rampSteps, scoreColor, state } from "/static/app.js";
+import { api, cssVar, el, fmt, labelKind, rampSteps, scoreColor, state } from "/static/app.js";
 import * as viewer from "/static/viewer.js";
 
 let sortKey = "p0";
@@ -13,9 +13,47 @@ const view = {
   get setup() { return $("setup").value; },
   get labels() { return state.meta?.setups?.[$("setup").value]?.label_names || []; },
   get label() { return Number(document.querySelector('input[name="label"]:checked')?.value ?? 0); },
+  /** "protein" (blue ramp) or "nucleic" (red ramp) for the label on display. */
+  get kind() { return labelKind($("setup").value, this.label); },
   get threshold() { return Number($("threshold").value); },
   get colorMode() { return $("colormode").value; },
+  /** "raw", "refined" or "change"; always "raw" while the result has no refinement. */
+  get source() { return state.result?.refinement ? $("score-source").value : "raw"; },
 };
+
+/** The refine fields as the API names them, from the Predict panel's controls. */
+function refineSettings() {
+  return {
+    refine_method: $("refine-method").value,
+    refine_strength: Number($("refine-strength").value),
+    gumbel_tau: Number($("gumbel-tau").value),
+    gumbel_samples: Math.round(Number($("gumbel-samples").value)),
+  };
+}
+
+/* ------------------------------------------------------------------ scores */
+
+/** The score thresholds and hits are judged on: raw, or refined when that is shown. */
+function decisionScore(r, setup, label) {
+  if (!r) return null;
+  return view.source !== "raw" && r.pr ? r.pr[setup][label] : r.p[setup][label];
+}
+
+/** What the colour ramps show: the decision score, or refined − raw in "change" mode. */
+function displayValue(r, setup, label) {
+  if (!r) return null;
+  if (view.source === "change") return r.pr ? r.pr[setup][label] - r.p[setup][label] : null;
+  return decisionScore(r, setup, label);
+}
+
+/** Colour for a displayValue. Change mode maps Δ ∈ [−0.5, 0.5] onto the diverging ramp. */
+function displayColor(v, kind) {
+  if (view.source === "change") {
+    return scoreColor(v === null ? null : 0.5 + v, { steps: rampSteps("diverging") });
+  }
+  return scoreColor(v, { mode: view.colorMode, threshold: view.threshold,
+                         steps: rampSteps(kind) });
+}
 
 /* --------------------------------------------------------------- lifecycle */
 
@@ -34,7 +72,23 @@ export function init() {
   });
   $("colormode").addEventListener("change", repaint);
   $("show-surface").addEventListener("change", repaint);
-  $("show-sidechains").addEventListener("change", repaint);
+
+  $("refine-method").addEventListener("change", () => {
+    // Choosing a method is asking to see its effect.
+    if ($("refine-method").value !== "none" && $("score-source").value === "raw") {
+      $("score-source").value = "refined";
+    }
+    syncRefineControls();
+    scheduleRefine();
+  });
+  for (const [id, digits] of [["refine-strength", 2], ["gumbel-tau", 2]]) {
+    $(id).addEventListener("input", () => {
+      $(`${id}-value`).textContent = Number($(id).value).toFixed(digits);
+      scheduleRefine();
+    });
+  }
+  $("gumbel-samples").addEventListener("change", scheduleRefine);
+  $("score-source").addEventListener("change", repaint);
 
   $("subtabs").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-sub]");
@@ -61,7 +115,8 @@ export function init() {
   track.addEventListener("click", () => { if (hoverResi) focusResidue(hoverResi); });
 
   window.addEventListener("resize", () => { drawTrack(); viewer.resize(); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  // Fired by the theme picker and by an OS theme change (see app.js).
+  window.addEventListener("themechange", () => {
     viewer.setBackground(cssVar("--surface-0"));
     repaint();
   });
@@ -85,8 +140,68 @@ function applySavedSettings() {
   $("ramp-tick").style.left = `${s.threshold * 100}%`;
   $("colormode").value = s.color_mode;
   $("show-surface").checked = !!s.show_surface;
-  $("show-sidechains").checked = !!s.show_sidechains;
+  $("refine-method").value = s.refine_method || "none";
+  $("refine-strength").value = String(s.refine_strength ?? 0.5);
+  $("refine-strength-value").textContent = Number(s.refine_strength ?? 0.5).toFixed(2);
+  $("gumbel-tau").value = String(s.gumbel_tau ?? 0.5);
+  $("gumbel-tau-value").textContent = Number(s.gumbel_tau ?? 0.5).toFixed(2);
+  $("gumbel-samples").value = String(s.gumbel_samples ?? 64);
+  if ($("refine-method").value !== "none") $("score-source").value = "refined";
+  syncRefineControls();
   updateThresholdHint();
+}
+
+/* -------------------------------------------------------------- refinement */
+
+/** Show the parameters the chosen method takes, and say what it does. */
+function syncRefineControls() {
+  const method = $("refine-method").value;
+  $("refine-params").hidden = method === "none";
+  $("gumbel-params").hidden = method !== "gumbel";
+  const arch = state.result?.arch || state.settings?.arch;
+  const noContacts = state.result && !state.result.has_contacts;
+  $("refine-hint").textContent =
+    method === "none"
+      ? "Optionally let each residue borrow evidence from the residues it touches " +
+        "(Voronoi contacts). Binding sites are patches, not single residues."
+      : noContacts
+        ? "This prediction has no contact graph (the sequence-only MLP skips the " +
+          "tessellation). Press Predict again to compute it."
+        : (method === "bayes"
+            ? "Adds each contact's log-odds, relative to the chain's baseline, weighted " +
+              "by contact area."
+            : "Samples which residue anchors each patch, weighted by contact area and " +
+              "score; the spread across samples is shown as ± sd.") +
+          (arch === "mlp" ? "" : " The GNN models already pass messages over these " +
+                                 "contacts, so expect smaller changes than for the MLP.") +
+          " Post-processing: the reported PR-AUC is for raw scores.";
+}
+
+let refineTimer = null;
+let refineSeq = 0;
+
+/** Re-refine the current job's scores. Milliseconds on the server; the model is not
+ *  re-run. Debounced for slider drags, and a stale reply is dropped. */
+function scheduleRefine() {
+  clearTimeout(refineTimer);
+  if (!state.jobId || !state.result) { repaint(); return; }
+  if (!state.result.has_contacts && $("refine-method").value !== "none") {
+    syncRefineControls();
+    return;
+  }
+  refineTimer = setTimeout(async () => {
+    const seq = ++refineSeq;
+    try {
+      const result = await api.post(`/api/v1/jobs/${state.jobId}/refine`, refineSettings());
+      if (seq !== refineSeq) return;
+      state.result = result;
+      syncRefineControls();
+      repaint();
+    } catch (err) {
+      showStatus(`${err.code ? err.code + ": " : ""}${err.message}`,
+                 { error: true, hideAfter: 8000 });
+    }
+  }, 150);
 }
 
 /* ------------------------------------------------------------------ inputs */
@@ -122,12 +237,23 @@ function renderLabels() {
     box.append(el("label", {},
       el("input", { type: "radio", name: "label", value: String(i), checked: i === 0,
                     onchange: repaint }),
+      // A CSS variable, not a resolved colour, so the swatch follows a theme switch.
+      el("span", { class: "swatch", style: {
+        background: `var(--score-${labelKind(setup, i) === "nucleic" ? "na-" : ""}4)` } }),
       el("span", {}, label),
-      el("span", { class: "metric", title: "test-set PR-AUC for this label" },
-         auc === null ? "" : `PR-AUC ${fmt.n(auc, 2)}`),
+      el("span", { class: "metric", title: "test-set PR-AUC for this label (raw model)",
+                   "data-auc": auc === null ? "" : fmt.n(auc, 2) }, metricText(auc === null
+                     ? "" : fmt.n(auc, 2))),
     ));
   });
   updateThresholdHint();
+  renderLegend();
+}
+
+/** The PR-AUC chip; it describes the raw model, which matters once refined scores show. */
+function metricText(auc) {
+  if (!auc) return "";
+  return `PR-AUC ${auc}${view.source === "raw" ? "" : " (raw model)"}`;
 }
 
 /** One sortable score column per label of the selected task. The radio above
@@ -139,7 +265,10 @@ function renderScoreColumns(labels) {
   labels.forEach((name, i) => {
     tr.append(el("th", { "data-sort": `p${i}`, "data-label": String(i) }, name));
   });
-  if (!/^p\d+$/.test(sortKey) || Number(sortKey.slice(1)) >= labels.length) {
+  // Refined − raw for the active label; shown only when there is a refinement.
+  tr.append(el("th", { "data-sort": "delta", "data-label": "delta", hidden: true }, "Δ"));
+  if (sortKey !== "delta" &&
+      (!/^p\d+$/.test(sortKey) || Number(sortKey.slice(1)) >= labels.length)) {
     sortKey = "p0";
     sortDir = -1;
   }
@@ -152,7 +281,8 @@ function updateThresholdHint() {
       "0.50 is the operating point every reported metric uses.";
     return;
   }
-  const n = res.residues.filter((r) => r.p[view.setup][view.label] >= view.threshold).length;
+  const n = res.residues.filter(
+    (r) => decisionScore(r, view.setup, view.label) >= view.threshold).length;
   const total = res.residues.length;
   $("thr-hint").textContent =
     `${n} of ${total} predicted residues at or above ${view.threshold.toFixed(2)} ` +
@@ -204,6 +334,7 @@ async function runPrediction() {
       const job = await api.post("/api/v1/predict", {
         structure_id: state.structure.structure_id,
         chain_id: chain,
+        settings: refineSettings(),
       });
       state.jobId = job.job_id;
 
@@ -214,24 +345,31 @@ async function runPrediction() {
           if (data.message) setText(data.message);
           if (!data.final) return;
           src.close();
-          const j = await api.get(`/api/v1/jobs/${job.job_id}`);
-          if (j.status === "done") resolve(j.result);
-          else reject(Object.assign(new Error(j.error?.message || "prediction failed"),
-                                    { code: j.error?.code }));
+          // Everything after close() must settle the promise: a throw here would
+          // otherwise leave it pending and the spinner turning for good.
+          try {
+            const j = await api.get(`/api/v1/jobs/${job.job_id}`);
+            if (j.status === "done") resolve(j.result);
+            else reject(Object.assign(new Error(j.error?.message || "prediction failed"),
+                                      { code: j.error?.code }));
+          } catch (err) {
+            reject(err);
+          }
         };
         src.onerror = () => { src.close(); reject(new Error("lost connection to the server")); };
       });
 
       state.result = result;
-      await onResult(result);
+      await onResult(result, setText);
     });
   } finally {
     $("run").disabled = false;
   }
 }
 
-async function onResult(result) {
+async function onResult(result, setText = () => {}) {
   renderWarnings(result.warnings);
+  syncRefineControls();
   $("viewer-title").textContent =
     `${result.source} · chain ${result.chain_id} · ${result.arch}`;
   renderTable();
@@ -242,7 +380,9 @@ async function onResult(result) {
     `${result.n_predicted} predicted · ${result.unpredicted.length} not predicted · ` +
     `${result.sequence.length} in sequence · ${Object.entries(result.timings_ms)
       .map(([k, v]) => `${k} ${v}ms`).join("  ")}`;
-  // Last: the cheap panels should be on screen before the structure parses.
+  // Last: the cheap panels should be on screen before the structure parses. The
+  // prediction is done by now; say so, rather than leave the last model stage up.
+  setText("prediction done — drawing the structure…");
   await loadViewer(result);
 }
 
@@ -290,14 +430,11 @@ function byResi() {
   return map;
 }
 
-/** Score lookup for the displayed task and label; null where there is none. */
+/** Displayed value for the task and label (see displayValue); null where there is none. */
 function scoreLookup() {
   const map = byResi();
   const setup = view.setup, label = view.label;
-  return (resi) => {
-    const r = map[resi];
-    return r ? r.p[setup][label] : null;
-  };
+  return (resi) => displayValue(map[resi], setup, label);
 }
 
 let paintTimer = null;
@@ -312,19 +449,20 @@ function paintViewer() {
   clearTimeout(paintTimer);
   if (!viewer.isReady() || !state.result) return Promise.resolve();
   const score = scoreLookup();
-  const opts = { mode: view.colorMode, threshold: view.threshold, steps: rampSteps() };
+  const kind = view.kind;
   return viewer.paint({
-    colorOf: (resi) => scoreColor(score(resi), opts),
-    // Guard the null: an unscored residue must not become a hit at threshold 0.
-    isHit: (resi) => { const p = score(resi); return p !== null && p >= view.threshold; },
+    colorOf: (resi) => displayColor(score(resi), kind),
     showSurface: $("show-surface").checked,
-    showSticks: $("show-sidechains").checked,
     unpredicted: cssVar("--unpredicted"),
   }).catch((err) => console.error("could not repaint the viewer", err));
 }
 
 function repaint() {
+  for (const m of document.querySelectorAll("#labels .metric")) {
+    m.textContent = metricText(m.dataset.auc);
+  }
   updateThresholdHint();
+  renderLegend();
   _byResi = null;
   drawTrack();
   renderTable();
@@ -333,11 +471,25 @@ function repaint() {
   schedulePaint();
 }
 
+/** The legend ramp follows the displayed label: blue for protein, red for nucleic acid. */
+function renderLegend() {
+  const change = view.source === "change";
+  $("ramp").classList.toggle("nucleic", !change && view.kind === "nucleic");
+  $("ramp").classList.toggle("diverging", change);
+  $("ramp-tick").hidden = change;
+  $("ramp-lo").textContent = change ? "−0.5" : "0";
+  $("ramp-hi").textContent = change ? "+0.5" : "1";
+  const name = view.labels[view.label];
+  $("ramp-label").textContent = !name ? ""
+    : change ? `${name}: refined − raw`
+    : `${name} ${view.source === "refined" ? "refined score" : "score"}`;
+}
+
 function focusResidue(resi) {
   hoverResi = resi;
   describeResidue(resi);
   drawTrack();
-  viewer.focusResidue(resi);
+  viewer.focusResidue(resi, byResi()[resi]?.nb || []);
 }
 
 /** Mol* hover: keep the track cursor and the hover line in step with the 3D view. */
@@ -367,8 +519,7 @@ function drawTrack() {
 
   const n = result.sequence.length;
   const map = byResi();
-  const steps = rampSteps();
-  const opts = { mode: view.colorMode, threshold: view.threshold, steps };
+  const kind = view.kind;
   const pad = 8;
   const cellW = (width - pad * 2) / n;
   const rows = 3;                        // colour band, threshold marks, ruler
@@ -378,8 +529,7 @@ function drawTrack() {
   // 1000 nodes and janky on every repaint.
   for (let i = 0; i < n; i++) {
     const r = map[i + 1];
-    const p = r ? r.p[view.setup][view.label] : null;
-    ctx.fillStyle = scoreColor(p, opts);
+    ctx.fillStyle = displayColor(displayValue(r, view.setup, view.label), kind);
     const x = pad + i * cellW;
     ctx.fillRect(x, bandTop, Math.max(cellW, 0.8), bandH);
     if (!r) {
@@ -410,6 +560,11 @@ function drawTrack() {
   }
 
   if (hoverResi) {
+    // The hovered residue's contacts, as ticks above the band: its patch at a glance.
+    ctx.fillStyle = cssVar("--text-secondary");
+    for (const j of map[hoverResi]?.nb || []) {
+      ctx.fillRect(pad + (j - 1) * cellW, bandTop - 6, Math.max(cellW, 1.5), 3);
+    }
     const x = pad + (hoverResi - 1) * cellW;
     ctx.strokeStyle = cssVar("--text-primary");
     ctx.lineWidth = 1.5;
@@ -445,12 +600,22 @@ function describeResidue(i) {
   if (!result) return;
   const r = byResi()[i];
   const aa = result.sequence[i - 1] ?? "?";
-  const scores = view.labels
-    .map((name, k) => `${name} ${fmt.n(r?.p[view.setup][k], 3)}`)
-    .join(" · ");
+  const setup = view.setup;
+  const scores = view.labels.map((name, k) => {
+    let t = `${name} ${fmt.n(r?.p[setup][k], 3)}`;
+    if (r?.pr) t += ` → ${fmt.n(r.pr[setup][k], 3)}`;
+    if (r?.psd) t += ` ± ${fmt.n(r.psd[setup][k], 3)}`;
+    return t;
+  }).join(" · ");
+  // Contacts with the score the colouring uses, strongest contact first.
+  const map = byResi();
+  const contacts = (r?.nb || []).slice(0, 8).map((j) =>
+    `${result.sequence[j - 1] ?? "?"}${j} ${fmt.n(decisionScore(map[j], setup, view.label), 2)}`);
   $("seq-hover").textContent = r
     ? `${aa}${i} (auth ${r.chain}/${r.auth}${r.icode}) · ${scores}` +
-      ` · SASA ${r.sas === null ? "—" : fmt.n(r.sas, 1)} Å²`
+      ` · SASA ${r.sas === null ? "—" : fmt.n(r.sas, 1)} Å²` +
+      (contacts.length ? ` · contacts: ${contacts.join(", ")}` +
+                         (r.nb.length > 8 ? ` +${r.nb.length - 8}` : "") : "")
     : `${aa}${i} · not predicted (unobserved in the structure, or buried)`;
 }
 
@@ -463,8 +628,12 @@ function renderTable() {
   if (!result) return;
 
   const setup = view.setup, label = view.label, labels = view.labels;
+  const steps = labels.map((_, k) => rampSteps(labelKind(setup, k)));
+  const refined = !!result.refinement;
+  const delta = (r) => (r.pr ? r.pr[setup][label] - r.p[setup][label] : 0);
   const rows = [...result.residues].sort((a, b) => {
-    const get = (r) => (/^p\d+$/.test(sortKey) ? r.p[setup][Number(sortKey.slice(1))]
+    const get = (r) => (/^p\d+$/.test(sortKey) ? decisionScore(r, setup, Number(sortKey.slice(1)))
+      : sortKey === "delta" ? delta(r)
       : sortKey === "aa" ? r.aa
       : sortKey === "sas" ? (r.sas ?? -1)
       : sortKey === "auth" ? r.auth : r.i);
@@ -476,6 +645,7 @@ function renderTable() {
     const base = th.textContent.replace(/[ ▲▼]+$/, "");
     th.textContent = th.dataset.sort === sortKey ? `${base} ${sortDir < 0 ? "▼" : "▲"}` : base;
     th.classList.toggle("active-label", th.dataset.label === String(label));
+    if (th.dataset.sort === "delta") th.hidden = !refined;
   }
 
   // Render a bounded slice: a 1000-residue chain with a full DOM table is slow to
@@ -483,7 +653,7 @@ function renderTable() {
   const LIMIT = 400;
   const frag = document.createDocumentFragment();
   for (const r of rows.slice(0, LIMIT)) {
-    const hit = r.p[setup][label] >= view.threshold;
+    const hit = decisionScore(r, setup, label) >= view.threshold;
     frag.append(el("tr", {
       class: hit ? "hit" : "",
       onmouseenter: () => { hoverResi = r.i; drawTrack(); },
@@ -495,18 +665,21 @@ function renderTable() {
       el("td", {}, r.aa),
       el("td", {}, r.sas === null ? "—" : fmt.n(r.sas, 1)),
       ...labels.map((_, k) => {
-        const p = r.p[setup][k];
+        const p = decisionScore(r, setup, k);
         return el("td", { class: k === label ? "active-label" : "" },
           el("div", { class: "bar-cell" },
             el("div", { class: "bar", style: { width: `${Math.max(2, p * 46)}px`,
-                                               background: scoreColor(p, { threshold: view.threshold }) } }),
+                                               background: scoreColor(p, { steps: steps[k] }) } }),
             el("span", {}, fmt.n(p, 3))));
       }),
+      refined ? el("td", { class: "mono" },
+        `${delta(r) > 0 ? "+" : ""}${fmt.n(delta(r), 3)}`) : null,
     ));
   }
   tbody.append(frag);
   if (rows.length > LIMIT) {
-    tbody.append(el("tr", {}, el("td", { colspan: String(4 + labels.length), class: "muted",
+    tbody.append(el("tr", {}, el("td", { colspan: String(4 + labels.length + (refined ? 1 : 0)),
+                                          class: "muted",
       style: { textAlign: "center", padding: "10px" } },
       `showing the top ${LIMIT} of ${rows.length} — download the CSV for all`)));
   }
@@ -517,17 +690,22 @@ function renderTable() {
 function renderDownloads() {
   const box = $("downloads");
   const job = state.jobId;
-  // Everything the command-line script writes, for the current task and label.
-  const q = `setup=${view.setup}&label=${view.label}&threshold=${view.threshold}`;
+  // Everything the command-line script writes, for the current task and label, and for
+  // the scores on display: "change" downloads the refined scores it is drawn from.
+  const source = view.source === "raw" ? "raw" : "refined";
+  const q = `setup=${view.setup}&label=${view.label}&threshold=${view.threshold}` +
+            `&source=${source}`;
   box.replaceChildren(
-    link(`/api/v1/artifacts/${job}/report.html?threshold=${view.threshold}`,
+    link(`/api/v1/artifacts/${job}/report.html?threshold=${view.threshold}&source=${source}`,
          "report.html",
          "This page as one standalone file — Mol* included, opens anywhere, no server."),
     link(`/api/v1/artifacts/${job}/figure.png?${q}`, "figure.png",
          "The four-panel figure: two 3D views, top residues, score along the chain."),
     link(`/api/v1/artifacts/${job}/predictions.csv`, "predictions.csv",
-         "Every residue, every label, every task."),
-    link(`/api/v1/artifacts/${job}/predictions.pdb?setup=${view.setup}&label=${view.label}`,
+         "Every residue, every label, every task" +
+         (state.result?.refinement ? " — raw and refined columns." : ".")),
+    link(`/api/v1/artifacts/${job}/predictions.pdb?setup=${view.setup}&label=${view.label}` +
+         `&source=${source}`,
          "predictions.pdb",
          "Structure with the current score in the B-factor column (−1.00 = not predicted)."),
     link(`/api/v1/artifacts/${job}/receptor.pdb`, "receptor.pdb",
@@ -547,7 +725,8 @@ function link(href, title, sub) {
 
 async function copyPymol() {
   const url = `/api/v1/artifacts/${state.jobId}/pymol.txt` +
-    `?setup=${view.setup}&label=${view.label}&threshold=${view.threshold}`;
+    `?setup=${view.setup}&label=${view.label}&threshold=${view.threshold}` +
+    `&source=${view.source === "raw" ? "raw" : "refined"}`;
   const text = await (await fetch(url)).text();
   try {
     await navigator.clipboard.writeText(text);
@@ -559,35 +738,33 @@ async function copyPymol() {
 
 /* ----------------------------------------------------------------- status */
 
+let statusTimer = null;
+
+/** The status line above the viewer. `null` hides it; the spinner shows only while
+ *  `busy`. A pending auto-hide is cancelled by whatever status comes next, so an old
+ *  error's timer can never blank a newer message. */
+function showStatus(message, { busy = false, error = false, hideAfter = 0 } = {}) {
+  clearTimeout(statusTimer);
+  const bar = $("status");
+  bar.hidden = message === null;
+  bar.querySelector(".spinner").hidden = !busy;
+  bar.style.color = error ? cssVar("--danger") : "";
+  $("status-text").textContent = message ?? "";
+  if (hideAfter) statusTimer = setTimeout(() => showStatus(null), hideAfter);
+}
+
 async function withStatus(initial, fn) {
-  const bar = $("status"), text = $("status-text");
-  bar.hidden = false;
-  bar.classList.remove("banner", "error");
-  text.textContent = initial;
-  const setText = (t) => { text.textContent = t; };
+  showStatus(initial, { busy: true });
   try {
-    await fn(setText);
-    bar.hidden = true;
+    await fn((t) => showStatus(t, { busy: true }));
+    showStatus(null);
   } catch (err) {
-    bar.querySelector(".spinner").style.visibility = "hidden";
-    text.textContent = `${err.code ? err.code + ": " : ""}${err.message}`;
-    bar.style.color = cssVar("--danger");
-    setTimeout(() => {
-      bar.hidden = true;
-      bar.style.color = "";
-      bar.querySelector(".spinner").style.visibility = "";
-    }, 8000);
+    showStatus(`${err.code ? err.code + ": " : ""}${err.message}`,
+               { error: true, hideAfter: 8000 });
     console.error(err);
   }
 }
 
 function flash(message) {
-  const bar = $("status"), text = $("status-text");
-  bar.hidden = false;
-  bar.querySelector(".spinner").style.visibility = "hidden";
-  text.textContent = message;
-  setTimeout(() => {
-    bar.hidden = true;
-    bar.querySelector(".spinner").style.visibility = "";
-  }, 1600);
+  showStatus(message, { hideAfter: 1600 });
 }

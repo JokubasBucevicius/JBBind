@@ -2,7 +2,7 @@
 
 import { api, archColor, el, fmt, state } from "/static/app.js";
 
-const ARCH_ORDER = ["gnn_mlp", "joint", "mlp", "gnn"];
+const ARCH_ORDER = ["gnn_mlp", "joint", "mlp"];
 let caches = [];
 let dirty = {};
 
@@ -49,8 +49,8 @@ function render() {
         "models/<setup>/<arch>/ and it appears here."),
 
       row("Architecture",
-        "Which trained network runs. GNN+MLP and Joint are consistently the strongest; " +
-        "the structure-only GNN is far behind and is kept as a control.",
+        "Which trained network runs. GNN+MLP and Joint see the structure and the " +
+        "sequence; MLP sees the sequence only.",
         el("div", { class: "radio-list" },
           ...ARCH_ORDER.map((a) => {
             const avail = archAvailable(a);
@@ -73,11 +73,6 @@ function render() {
 
     el("div", { class: "card" },
       el("h3", {}, "Inference"),
-      row("Device", "CUDA is used automatically when a GPU is visible.",
-        select([["auto", `auto (currently ${state.meta?.device || "?"})`],
-                ["cpu", "cpu"], ["cuda", "cuda"]], s.device,
-          (v) => { dirty.device = v; markDirty(); })),
-
       row("Long chains",
         "ESM-2 takes 1022 tokens at a time. `tile` covers the whole chain with " +
         "overlapping windows, so chains past 1022 residues are scored end to end; " +
@@ -113,16 +108,50 @@ function render() {
     ),
 
     el("div", { class: "card" },
+      el("h3", {}, "Neighbourhood refinement"),
+      el("p", { class: "sub" },
+        "Optional post-processing: each residue borrows evidence from the residues it " +
+        "touches (Voronoi contacts, weighted by contact area), because binding sites are " +
+        "patches. The raw model scores are kept, and every reported metric describes " +
+        "them, not the refined ones. The Predict page can switch this on per structure; " +
+        "these are its defaults. The GNN models already pass messages over these " +
+        "contacts, so expect the largest effect on the sequence-only MLP."),
+      row("Method",
+        "Bayesian pooling adds each contact's log-odds against the chain's baseline. " +
+        "Gumbel-softmax samples which residue anchors each patch; its mean is a " +
+        "temperature-weighted neighbour average, and its spread gives a ± sd.",
+        select([["none", "off — raw model scores"],
+                ["bayes", "Bayesian log-odds pooling"],
+                ["gumbel", "Gumbel-softmax sampling"]], s.refine_method,
+          (v) => { dirty.refine_method = v; markDirty(); })),
+      row("Neighbour weight", "β for Bayesian pooling, λ for Gumbel-softmax. 0 is off.",
+        rangeWithReadout("refine-strength", 0, 1, 0.05, s.refine_strength,
+          (v) => { dirty.refine_strength = v; })),
+      row("Temperature τ (Gumbel)",
+        "Low: each residue follows the likeliest anchor of its patch (contact area × " +
+        "score). High: a plain average over the residue and its contacts.",
+        rangeWithReadout("gumbel-tau", 0.1, 5, 0.1, s.gumbel_tau,
+          (v) => { dirty.gumbel_tau = v; })),
+      row("Samples (Gumbel)", "More samples steady the mean and the sd; 8 to 1024.",
+        el("input", { type: "number", min: "8", max: "1024", step: "8",
+                      value: String(s.gumbel_samples),
+                      onchange: (e) => {
+                        dirty.gumbel_samples = Math.round(Number(e.target.value));
+                        markDirty();
+                      } })),
+    ),
+
+    el("div", { class: "card" },
       el("h3", {}, "Display"),
-      row("Colouring", "How the score maps onto the structure.",
+      row("Colouring",
+        "How the score maps onto the structure: a blue ramp for protein-binding " +
+        "labels, a red one for nucleic-acid-binding labels.",
         select([["continuous", "continuous score ramp"],
                 ["threshold", "above / below threshold"]], s.color_mode,
           (v) => { dirty.color_mode = v; markDirty(); })),
       row("Molecular surface",
         "Off by default — surface generation is the slow part of rendering.",
         checkbox(s.show_surface, (v) => { dirty.show_surface = v; markDirty(); })),
-      row("Side-chain sticks", "Show sticks for residues above the threshold.",
-        checkbox(s.show_sidechains, (v) => { dirty.show_sidechains = v; markDirty(); })),
     ),
 
     el("div", { class: "card" },
@@ -154,7 +183,7 @@ function render() {
 
 const archLabel = (a) =>
   ({ gnn_mlp: "GNN+MLP — structure + sequence", joint: "Joint — end-to-end",
-     mlp: "MLP — sequence only", gnn: "GNN — structure only" })[a] || a;
+     mlp: "MLP — sequence only" })[a] || a;
 
 function row(title, hint, control) {
   return el("div", { class: "setting-row" },
@@ -166,6 +195,20 @@ function select(options, value, onchange) {
   return el("select", { onchange: (e) => onchange(e.target.value) },
     ...options.map(([v, label]) =>
       el("option", { value: v, selected: String(value) === String(v) }, label)));
+}
+
+/** A slider with its value printed under it, like the threshold's. */
+function rangeWithReadout(id, min, max, step, value, onchange) {
+  return el("div", {},
+    el("input", { type: "range", min: String(min), max: String(max), step: String(step),
+                  value: String(value),
+                  oninput: (e) => {
+                    $(`${id}-readout`).textContent = Number(e.target.value).toFixed(2);
+                    onchange(Number(e.target.value));
+                    markDirty();
+                  } }),
+    el("div", { class: "mono", id: `${id}-readout`, style: { marginTop: "4px" } },
+       Number(value).toFixed(2)));
 }
 
 function checkbox(value, onchange) {

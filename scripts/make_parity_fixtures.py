@@ -46,7 +46,7 @@ OUT = Path(__file__).resolve().parents[1] / "tests" / "data"
 
 CHAINS = ["12as_A", "6oax_E", "3cqz_A"]
 SETUPS = ["protein_nucleic", "homo_hetero", "protein", "dna_rna", "nucleic"]
-ARCHS = ["mlp", "gnn", "gnn_mlp", "joint"]
+ARCHS = ["mlp", "gnn_mlp", "joint"]
 NUM_LABELS = {"protein_nucleic": 2, "homo_hetero": 2, "protein": 1, "dna_rna": 2, "nucleic": 1}
 
 
@@ -91,9 +91,6 @@ def build_reference_model(arch: str, setup: str, k: int):
                     weights_only=False)
     if arch == "mlp":
         model = tm.BindingSiteMLP(**ck["model_config"])
-    elif arch == "gnn":
-        model = tm.BindingSiteGNN(input_dim=5, hidden_dim=256, heads=4, dropout=0.2,
-                                  output_dim=k)
     elif arch == "gnn_mlp":
         model = tm.BindingSiteGNN(input_dim=69, hidden_dim=512, heads=4, dropout=0.5,
                                   output_dim=k)

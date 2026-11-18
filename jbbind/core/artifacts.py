@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import dataclasses
 import io
 import re
 from typing import TYPE_CHECKING
@@ -21,6 +22,36 @@ def slug(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_")
 
 
+def describe_refinement(refinement: dict | None) -> str:
+    """"gumbel-softmax, strength 0.5, tau 0.5, 64 samples", for headers and remarks."""
+    if not refinement:
+        return "raw model scores"
+    method = {"bayes": "Bayesian log-odds pooling",
+              "gumbel": "Gumbel-softmax sampling"}.get(refinement["method"],
+                                                      refinement["method"])
+    parts = [f"{method} over Voronoi contacts", f"strength {refinement['strength']:g}"]
+    if "tau" in refinement:
+        parts += [f"tau {refinement['tau']:g}", f"{refinement['samples']} samples"]
+    return ", ".join(parts)
+
+
+def scores_view(result: "PredictionResult", source: str = "raw") -> "PredictionResult":
+    """``result`` with ``probs`` holding the raw or the refined scores.
+
+    Every artifact reads ``probs``, so swapping them here gives each download a refined
+    variant without teaching any of them about refinement.
+    """
+    if source == "raw":
+        return result
+    if source != "refined":
+        raise ValueError("source must be raw or refined")
+    if result.refinement is None:
+        raise ValueError("this prediction has no refined scores; turn refinement on first")
+    return dataclasses.replace(
+        result, score_source="refined",
+        residues=[dataclasses.replace(r, probs=r.refined) for r in result.residues])
+
+
 def predictions_csv(result: "PredictionResult", setup: str | None = None) -> str:
     setups = [setup] if setup else list(result.label_names)
     buf = io.StringIO()
@@ -28,9 +59,16 @@ def predictions_csv(result: "PredictionResult", setup: str | None = None) -> str
 
     header = ["seqres_index", "auth_chain", "auth_seq_id", "auth_icode",
               "resname", "one_letter", "sas_area"]
+    # Raw scores always; the refined ones (and their sd) beside them when present.
+    refined = result.refinement is not None
+    has_sd = refined and result.refinement["method"] == "gumbel"
     for s in setups:
         for label in result.label_names[s]:
             header.append(f"{s}:{label}")
+        if refined:
+            header.extend(f"{s}:{label}:refined" for label in result.label_names[s])
+        if has_sd:
+            header.extend(f"{s}:{label}:refined_sd" for label in result.label_names[s])
     writer.writerow(header)
 
     for r in result.residues:
@@ -39,6 +77,10 @@ def predictions_csv(result: "PredictionResult", setup: str | None = None) -> str
                "" if r.sas_area is None else f"{r.sas_area:.4f}"]
         for s in setups:
             row.extend(f"{p:.5f}" for p in r.probs[s])
+            if refined:
+                row.extend(f"{p:.5f}" for p in r.refined[s])
+            if has_sd:
+                row.extend(f"{p:.5f}" for p in r.refined_sd[s])
         writer.writerow(row)
     return buf.getvalue()
 
@@ -66,6 +108,10 @@ def predictions_pdb(result: "PredictionResult", setup: str, label_index: int = 0
         f"(buried residue, or beyond the ESM-2 1022-residue limit)",
         f"REMARK 100 NOTE       scores are uncalibrated sigmoid outputs, not probabilities",
     ]
+    if result.score_source == "refined":
+        out.append(f"REMARK 100 refined    {describe_refinement(result.refinement)}")
+        out.append("REMARK 100 NOTE       refined scores are post-processing; reported "
+                   "metrics describe the raw scores")
 
     for line in result.receptor_pdb.splitlines():
         if not line.startswith(("ATOM", "HETATM")):

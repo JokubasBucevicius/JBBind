@@ -8,7 +8,6 @@
 #   apptainer run --bind /scratch/jbbind:/data --cleanenv jbbind.sif
 #   apptainer exec --bind /scratch/jbbind:/data --cleanenv jbbind.sif \
 #       jbbind batch targets.csv --out results/
-#   apptainer run --nv --bind /scratch/jbbind:/data --cleanenv jbbind.sif   # GPU
 #
 # Each %post block mirrors the corresponding Dockerfile stage; keep them in step.
 #
@@ -177,5 +176,3 @@ WRAPPER
       apptainer exec --bind /scratch/jbbind:/data --cleanenv jbbind.sif \
           jbbind batch targets.csv --out results/
           predict many chains, resumably
-
-    Add --nv to use a GPU (only worth it for batch runs; ESM-2 is the bottleneck).

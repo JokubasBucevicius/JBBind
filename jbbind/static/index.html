@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JBBind — protein binding-site prediction</title>
+<script>
+  /* Before first paint, so a dark-mode choice does not flash light on load. */
+  try {
+    const t = localStorage.getItem("jbbind-theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch { /* storage blocked: follow the system setting */ }
+</script>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/vendor/molstar.css">
 <!-- Mol* itself is 4.8 MB and is fetched by viewer.js on first use, so opening
@@ -19,6 +26,11 @@
     <button data-page="settings">Settings</button>
   </nav>
   <div class="spacer"></div>
+  <select class="theme" id="theme" aria-label="Colour theme">
+    <option value="system">System theme</option>
+    <option value="light">Light</option>
+    <option value="dark">Dark</option>
+  </select>
   <div class="device" id="device-badge">…</div>
 </header>
 
@@ -84,9 +96,39 @@
           <label style="display:flex;align-items:center;gap:8px;font-weight:400">
             <input type="checkbox" id="show-surface" style="width:auto"> Show molecular surface
           </label>
-          <label style="display:flex;align-items:center;gap:8px;font-weight:400;margin-top:6px">
-            <input type="checkbox" id="show-sidechains" checked style="width:auto"> Sticks above threshold
-          </label>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+        <div class="field">
+          <label for="refine-method">Neighbourhood refinement</label>
+          <select id="refine-method">
+            <option value="none">Off — raw model scores</option>
+            <option value="bayes">Bayesian log-odds pooling</option>
+            <option value="gumbel">Gumbel-softmax sampling</option>
+          </select>
+          <div class="hint" id="refine-hint"></div>
+        </div>
+
+        <div id="refine-params" hidden>
+          <div class="field">
+            <label for="refine-strength">Neighbour weight — <span class="mono" id="refine-strength-value">0.50</span></label>
+            <input type="range" id="refine-strength" min="0" max="1" step="0.05" value="0.5">
+          </div>
+          <div class="field" id="gumbel-params" hidden>
+            <label for="gumbel-tau">Temperature τ — <span class="mono" id="gumbel-tau-value">0.50</span></label>
+            <input type="range" id="gumbel-tau" min="0.1" max="5" step="0.1" value="0.5">
+            <label for="gumbel-samples" style="margin-top:8px">Samples</label>
+            <input type="number" id="gumbel-samples" min="8" max="1024" step="8" value="64">
+          </div>
+          <div class="field">
+            <label for="score-source">Show scores</label>
+            <select id="score-source">
+              <option value="raw">Raw model</option>
+              <option value="refined">Refined</option>
+              <option value="change">Change (refined − raw)</option>
+            </select>
+          </div>
         </div>
       </div>
     </section>
@@ -97,9 +139,10 @@
       <div class="status" id="status" hidden><span class="spinner"></span><span id="status-text"></span></div>
       <div id="viewer"></div>
       <div class="legend">
-        <span class="mono">0</span>
+        <span id="ramp-label"></span>
+        <span class="mono" id="ramp-lo">0</span>
         <div class="ramp" id="ramp"><div class="tick" id="ramp-tick" style="left:50%"></div></div>
-        <span class="mono">1</span>
+        <span class="mono" id="ramp-hi">1</span>
         <span class="chip"><i></i> not predicted</span>
       </div>
     </section>

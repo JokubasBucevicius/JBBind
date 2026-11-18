@@ -57,12 +57,6 @@ diff-tool: ## audit the delta between the forked voronota script and the origina
 docker: ## build the CPU docker image
 	docker build -t jbbind:cpu .
 
-.PHONY: docker-cuda
-docker-cuda: ## build the CUDA docker image
-	docker build -t jbbind:cuda \
-	  --build-arg BASE_IMAGE=nvidia/cuda:12.4.1-runtime-ubuntu22.04 \
-	  --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 .
-
 .PHONY: sif
 sif: ## build the Apptainer image (works without a docker daemon)
 	apptainer build --fakeroot --force $(SIF) apptainer.def

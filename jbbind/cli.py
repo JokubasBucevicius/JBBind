@@ -48,10 +48,9 @@ def cmd_serve(args) -> int:
 
 
 def cmd_info(args) -> int:
-    import torch
     cfg = Settings()
     _, user, registry, caches = _build(cfg)
-    print(f"device        {cfg.device}  (cuda available: {torch.cuda.is_available()})")
+    print(f"device        {cfg.device}")
     print(f"models        {cfg.models_dir}")
     print(f"cache         {cfg.cache_dir}")
     try:

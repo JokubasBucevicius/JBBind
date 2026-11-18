@@ -17,7 +17,11 @@ python predict_bindingsites.py 1ycr_A  # one chain: scores, figures, HTML report
 
 ### From source
 
+JBBind runs on the CPU only. Install the CPU build of torch first; plain `pip install
+torch` pulls several GB of CUDA libraries that are never used.
+
 ```bash
+pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements.txt
 export PATH="$PATH:/path/to/voronota/expansion_js"   # voronota-js must be on PATH
 ```
@@ -38,8 +42,7 @@ apptainer exec --cleanenv --bind /scratch/jbbind:/data jbbind.sif \
 make docker && docker run -p 8000:8000 -v jbbind-data:/data jbbind:cpu
 ```
 
-The images bundle voronota, the ESM-2 weights and every checkpoint. For GPU, add `--nv`
-(Apptainer) or build `make docker-cuda` and run with `--gpus all`. If `make sif` fails at
+The images bundle voronota, the ESM-2 weights and every checkpoint. If `make sif` fails at
 "creating squashfs", use `make sandbox` instead and run `jbbind-sandbox/`.
 
 ---
@@ -68,9 +71,6 @@ See `deploy/README.md`.
 **From another machine**, forward the port — in VS Code, the **Ports** panel → *Forward a
 Port* → `8000`; from a terminal, `ssh -N -L 8000:127.0.0.1:8000 <host>`.
 
-**Pin the GPU** with `Environment=CUDA_VISIBLE_DEVICES=2` in the service unit, or
-`JBBIND_DEVICE=cpu` to run without one.
-
 ---
 
 ## Use the web app
@@ -80,17 +80,19 @@ Three pages: **Predict**, **Metrics**, **Settings**.
 On **Predict**:
 
 1. Type a 4-character PDB ID and press *Load*, or upload a `.pdb` / `.cif` / `.gz`.
-2. Pick the chain, pick the task, press *Run*.
-3. The structure appears in Mol*, coloured by score.
+2. Pick the chain and press *Predict*.
+3. The structure appears in Mol*, coloured by score: **blue** for protein binding,
+   **red** for nucleic-acid (DNA/RNA) binding.
 
 The left rail controls the view live: task, which label colours the structure, threshold,
-continuous-vs-threshold colouring, molecular surface, sticks above the threshold. The
+continuous-vs-threshold colouring, molecular surface. The
 right panel has a sequence track, a residue table showing **every label of the selected
 task side by side**, and a Download tab. Hovering the structure or the track names the
-residue; clicking one flies the camera to it.
+residue; clicking one flies the camera to it. The theme selector in the top bar switches
+between light, dark and the system setting.
 
 **Settings** sets the defaults the Predict page and the CLI both read: architecture, task,
-device, long-chain handling, RCSB source, threshold, colouring.
+long-chain handling, RCSB source, threshold, colouring.
 
 ---
 
@@ -106,14 +108,13 @@ Five tasks, each a set of independent per-residue binary labels:
 | `nucleic` | Nucleic acid |
 | `dna_rna` | DNA · RNA |
 
-Four architectures per task, `gnn_mlp` by default:
+Three architectures per task, `gnn_mlp` by default:
 
 | arch | inputs | test PR-AUC (macro, `protein`) |
 |---|---|---|
 | `gnn_mlp` | Voronoi contact graph + ESM-2 embedding | 0.576 |
 | `joint` | same, trained end to end | 0.579 |
 | `mlp` | ESM-2 sequence embedding only | 0.549 |
-| `gnn` | structure only | 0.360 |
 
 Scores are **uncalibrated** — rank residues by score rather than reading a score as a
 probability. Every reported metric uses a fixed threshold of 0.50.
@@ -210,7 +211,6 @@ Downloads: `predictions.csv` (every residue, every label, every task), `predicti
 
 | environment variable | default | |
 |---|---|---|
-| `JBBIND_DEVICE` | `auto` | `auto`, `cpu` or `cuda` |
 | `JBBIND_MODELS` | `models/` | checkpoint directory |
 | `JBBIND_CACHE` | `/data/cache` | structures, embeddings, predictions |
 | `JBBIND_MAX_RESIDUES` | `5000` | longest chain accepted |
@@ -218,7 +218,7 @@ Downloads: `predictions.csv` (every residue, every label, every task), `predicti
 | `JBBIND_JOB_WORKERS` | `2` | concurrent prediction jobs |
 
 Everything else lives on the Settings page and persists to `$JBBIND_CACHE/settings.json`.
-Resident memory is ~3.3 GB per worker on CPU, ~4 GB of VRAM on GPU; one worker is right, a
+Resident memory is ~3.3 GB per worker; one worker is right, a
 second doubles the ESM-2 copy for no throughput gain.
 
 ## Development

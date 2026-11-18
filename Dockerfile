@@ -1,11 +1,7 @@
 # JBBind — per-residue protein binding-site prediction.
 #
-# Two build targets from one file:
-#   CPU  (default)  docker build -t jbbind:cpu .
-#   CUDA            docker build -t jbbind:cuda \
-#                     --build-arg BASE_IMAGE=nvidia/cuda:12.4.1-runtime-ubuntu22.04 \
-#                     --build-arg TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124 .
-# The application code is identical and device-agnostic; only the torch wheel differs.
+# CPU only (the hosting server has no GPU):
+#   docker build -t jbbind:cpu .
 #
 # Layer order is deliberate: the 2.6 GB ESM-2 checkpoint sits BELOW the application code,
 # so editing jbbind/ rebuilds and re-pushes megabytes, not gigabytes.

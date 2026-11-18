@@ -8,7 +8,7 @@ threshold, so the file opens into something already worth looking at.
 from __future__ import annotations
 
 from .artifacts import UNPREDICTED_B, slug
-from .colour import SCORE_STOPS
+from .colour import stops_for
 
 def pymol_script(name: str, pdb_file: str, script: str, label: str,
                  threshold: float) -> str:
@@ -22,11 +22,12 @@ def pymol_script(name: str, pdb_file: str, script: str, label: str,
     spectrum's palette argument takes colour *names*, so hex literals there are silently
     misread.
     """
-    stops = " ".join(f"jb{i}" for i in range(len(SCORE_STOPS)))
+    ramp = stops_for(label)             # blue for protein, red for nucleic acid
+    stops = " ".join(f"jb{i}" for i in range(len(ramp)))
     defs = "\n".join(
         "set_color jb%d, [%.4f, %.4f, %.4f]"
         % ((i,) + tuple(int(h.lstrip("#")[j:j + 2], 16) / 255.0 for j in (0, 2, 4)))
-        for i, h in enumerate(SCORE_STOPS))
+        for i, h in enumerate(ramp))
     return f"""\
 # JBBind — {name} · {label}
 #   pymol {script}
@@ -57,6 +58,7 @@ orient {name}
 
 def chimerax_script(name: str, pdb_file: str, script: str, label: str,
                     threshold: float) -> str:
+    r = stops_for(label)                # blue for protein, red for nucleic acid
     return f"""\
 # JBBind — {name} · {label}
 # chimerax {script}
@@ -66,7 +68,7 @@ show cartoon
 color grey(70%)
 
 # B = score x 100; B = -1 marks a residue with no prediction and keeps the grey above.
-color byattribute bfactor #1 & @@bfactor>=0 palette 0,#cde2fb:33,#6da7ec:66,#2a78d6:100,#0d366b
+color byattribute bfactor #1 & @@bfactor>=0 palette 0,{r[0]}:33,{r[2]}:66,{r[4]}:100,{r[6]}
 select #1 & @@bfactor>={threshold * 100:g}
 show sel atoms
 color sel orange atoms

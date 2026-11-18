@@ -1,19 +1,18 @@
-"""Model registry: construct, load and run the four architectures.
+"""Model registry: construct, load and run the three architectures.
 
 Reconstruction configs come from
 /home/jokubasb/protein_protein/all_class/training/program/architectures.py
 (SHA256 26e5d650eafa091a5237d0f1c8811e908e9012036a8e9f061a9616c5a9281d42) because the
-``gnn`` and ``gnn_mlp`` checkpoints carry no ``model_config`` — only ``model_state_dict``,
+``gnn_mlp`` checkpoints carry no ``model_config`` — only ``model_state_dict``,
 ``arch``, ``setup`` and ``label_names``. Getting a config wrong here loads silently and
-predicts nonsense, so ``tests/test_parity_models.py`` checks all 20 combinations against
+predicts nonsense, so ``tests/test_parity_models.py`` checks all 15 combinations against
 the original classes.
 
-The four architectures differ in three ways that must not be conflated:
+The three architectures differ in three ways that must not be conflated:
 
   arch      node features x        extra input      forward
   --------  ---------------------  ---------------  ---------------------------
   mlp       (none — no graph)      ESM (n,1280)     model(esm)
-  gnn       5-d structural         none             model(batch)
   gnn_mlp   5 ‖ 64 embedder = 69   ESM via embedder model(batch)
   joint     5-d structural         ESM (n,1280)     model(esm, batch)[0]
 
@@ -40,19 +39,17 @@ from torch_geometric.data import Batch, Data
 from .models import BindingSiteGNN, BindingSiteMLP, JointMLPGNN, mlp_embed
 from .setups import SETUPS, LabelSetup
 
-ARCHS = ("gnn_mlp", "joint", "mlp", "gnn")
+ARCHS = ("gnn_mlp", "joint", "mlp")
 DEFAULT_ARCH = "gnn_mlp"
 
 ARCH_DISPLAY = {
     "mlp": "MLP",
-    "gnn": "GNN",
     "gnn_mlp": "GNN+MLP",
     "joint": "Joint",
 }
 
 ARCH_DESCRIPTION = {
     "mlp": "Sequence only — an MLP over ESM-2 embeddings. No structure.",
-    "gnn": "Structure only — GATv2 over the Voronoi contact graph. No sequence.",
     "gnn_mlp": "Structure + sequence — GATv2 over structural features concatenated with "
                "a pretrained MLP's 64-d ESM embedding.",
     "joint": "Structure + sequence trained end to end, with an auxiliary sequence loss.",
@@ -61,7 +58,7 @@ ARCH_DESCRIPTION = {
 #: Architectures that need an ESM-2 embedding of the chain.
 NEEDS_ESM = {"mlp", "gnn_mlp", "joint"}
 #: Architectures that need the Voronoi contact graph.
-NEEDS_GRAPH = {"gnn", "gnn_mlp", "joint"}
+NEEDS_GRAPH = {"gnn_mlp", "joint"}
 
 
 def build_model(arch: str, k: int, checkpoint: dict) -> torch.nn.Module:
@@ -73,10 +70,6 @@ def build_model(arch: str, k: int, checkpoint: dict) -> torch.nn.Module:
             "output_dim": k, "dropout": 0.4,
         }
         return BindingSiteMLP(**cfg)
-    if arch == "gnn":
-        # StructuralGNNArch.build_model, architectures.py:137-139.
-        return BindingSiteGNN(input_dim=5, hidden_dim=256, heads=4, dropout=0.2,
-                              output_dim=k)
     if arch == "gnn_mlp":
         # GNNMLPArch.build_model, architectures.py:183-185.
         return BindingSiteGNN(input_dim=69, hidden_dim=512, heads=4, dropout=0.5,
@@ -130,12 +123,16 @@ class LoadedModel:
 
 
 class ModelRegistry:
-    """Loads ``models/<setup>/<arch>/model.pt`` lazily and caches them."""
+    """Loads ``models/<setup>/<arch>/model.pt`` lazily and caches them.
+
+    One copy per device: a prediction asked to run on the CPU gets weights that
+    live on the CPU, rather than CPU tensors fed to weights left on the GPU.
+    """
 
     def __init__(self, models_dir: Path, device: torch.device):
         self.models_dir = Path(models_dir)
         self.device = device
-        self._cache: Dict[tuple[str, str], LoadedModel] = {}
+        self._cache: Dict[tuple[str, str, str], LoadedModel] = {}
         manifest_path = self.models_dir / "MANIFEST.json"
         self.manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
 
@@ -173,8 +170,10 @@ class ModelRegistry:
                 })
         return out
 
-    def get(self, setup_name: str, arch: str) -> LoadedModel:
-        key = (setup_name, arch)
+    def get(self, setup_name: str, arch: str,
+            device: Optional[torch.device] = None) -> LoadedModel:
+        device = torch.device(device) if device is not None else self.device
+        key = (setup_name, arch, str(device))
         if key in self._cache:
             return self._cache[key]
 
@@ -197,7 +196,7 @@ class ModelRegistry:
 
         model = build_model(arch, setup.num_labels, ck)
         model.load_state_dict(ck["model_state_dict"])
-        model.to(self.device).eval()
+        model.to(device).eval()
 
         embedder = None
         if arch == "gnn_mlp":
@@ -209,7 +208,7 @@ class ModelRegistry:
             eck = torch.load(emb_path, map_location="cpu", weights_only=False)
             embedder = BindingSiteMLP(**eck["model_config"])
             embedder.load_state_dict(eck["model_state_dict"])
-            embedder.to(self.device).eval()
+            embedder.to(device).eval()
 
         loaded = LoadedModel(setup=setup, arch=arch, model=model,
                              embedder=embedder, label_names=label_names)

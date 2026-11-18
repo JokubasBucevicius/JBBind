@@ -30,6 +30,13 @@ class TestViewerScripts:
         assert "@@bfactor>=50" in s
         assert "::bfactor" not in s
 
+    def test_nucleic_acid_labels_get_the_red_ramp(self):
+        from jbbind.core.colour import NUCLEIC_STOPS, PROTEIN_STOPS
+        assert NUCLEIC_STOPS[-1] in chimerax_script("n", "a.pdb", "s.cxc", "DNA", 0.5)
+        assert PROTEIN_STOPS[-1] in chimerax_script("n", "a.pdb", "s.cxc", "Homo", 0.5)
+        red = "%.4f" % (int(NUCLEIC_STOPS[0][1:3], 16) / 255)
+        assert f"set_color jb0, [{red}," in pymol_script("n", "a.pdb", "s.pml", "RNA", 0.5)
+
     def test_threshold_reaches_both_scripts(self):
         assert "b >= 30" in pymol_script("n", "a.pdb", "s.pml", "Protein", 0.3)
         assert "@@bfactor>=30" in chimerax_script("n", "a.pdb", "s.cxc", "Protein", 0.3)

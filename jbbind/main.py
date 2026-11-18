@@ -10,7 +10,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-import torch
 from fastapi import Body, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse,
                                PlainTextResponse, Response, StreamingResponse)
@@ -18,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 from .core.artifacts import (predictions_csv, predictions_pdb, pymol_selection,
-                            slug)
+                             scores_view, slug)
 from .core.report import report_html
 from .core.viewers import chimerax_script, pymol_script
 from .core.cache import CacheSet, sha256_bytes
@@ -26,11 +25,12 @@ from .core.esm.embedder import EsmEmbedder
 from .core.features.voronota import VoronotaError, voronota_version
 from .core.jobs import JobQueue
 from .core.nn.registry import ARCH_DISPLAY, ARCHS, ModelRegistry
-from .core.nn.setups import SETUPS
+from .core.nn.setups import SETUPS, label_kind
 from .core.pipeline import Pipeline, PredictionResult
 from .core.structure.fetch import FetchError, is_pdb_id
 from .core.structure.normalize import NormalizationError
-from .settings import Settings, UserSettings, UserSettingsStore, settings
+from .settings import (Settings, UserSettings, UserSettingsStore, settings,
+                       validate_refinement)
 
 STATUS_BY_CODE = {
     "PdbNotFound": 404, "ChainNotFound": 404,
@@ -40,7 +40,11 @@ STATUS_BY_CODE = {
     "PayloadTooLarge": 413, "TooManyResidues": 413,
     "VoronotaFailed": 500, "VoronotaTimeout": 504, "VoronotaMissing": 503,
     "RcsbUnavailable": 502, "Busy": 503,
+    "RefinementUnavailable": 409,
 }
+
+#: The settings the per-job refine endpoint accepts; everything else needs a re-run.
+REFINE_FIELDS = ("refine_method", "refine_strength", "gumbel_tau", "gumbel_samples")
 
 
 class App:
@@ -69,7 +73,9 @@ class App:
         if not overrides:
             return base
         d = asdict(base)
-        d.update({k: v for k, v in overrides.items() if v is not None})
+        # "device" was a setting until the GPU choice was removed; a tab still running
+        # the old page sends it, and it must not break the prediction.
+        d.update({k: v for k, v in overrides.items() if v is not None and k != "device"})
         return UserSettings(**d)
 
 
@@ -147,8 +153,8 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
         return {
             "version": app.version,
             "device": str(state.cfg.device),
-            "cuda_available": torch.cuda.is_available(),
             "setups": {name: {"label_names": s.label_names,
+                              "label_kinds": [label_kind(n) for n in s.label_names],
                               "description": s.description, "hint": s.hint}
                        for name, s in SETUPS.items()},
             "archs": list(ARCHS),
@@ -258,7 +264,30 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
         return JSONResponse({"job_id": job.id, "status": job.status}, status_code=202)
 
     def result_key(structure_id: str, chain_id: str, user: UserSettings) -> str:
-        return f"{structure_id}:{chain_id}:{user.arch}:{user.esm_long_seq_mode}"
+        refine = ":".join(str(getattr(user, f)) for f in REFINE_FIELDS)
+        return f"{structure_id}:{chain_id}:{user.arch}:{user.esm_long_seq_mode}:{refine}"
+
+    @app.post("/api/v1/jobs/{job_id}/refine")
+    def refine_job(job_id: str, body: dict = Body(...)):
+        """Re-refine a finished prediction's scores without re-running the model.
+
+        Milliseconds, so the Predict page calls it on every refinement control change.
+        The job's result is replaced, so its downloads follow.
+        """
+        res = _result_or_404(job_id)
+        unknown = set(body) - set(REFINE_FIELDS)
+        if unknown:
+            return problem("InvalidSettings",
+                           f"only {list(REFINE_FIELDS)} can change after a prediction; "
+                           f"got {sorted(unknown)}")
+        try:
+            user = state.effective_settings(body)
+            validate_refinement(user)
+        except (TypeError, ValueError) as exc:
+            return problem("InvalidSettings", str(exc))
+        refined = state.pipeline.refine(res, user)
+        state.results[job_id] = refined
+        return serialize(refined, user)
 
     @app.get("/api/v1/jobs/{job_id}")
     def get_job(job_id: str):
@@ -296,6 +325,13 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             raise HTTPException(404, f"no result for {job_id}")
         return res
 
+    def _scored(job_id: str, source: str) -> PredictionResult:
+        """The job's result with ``probs`` holding the raw or the refined scores."""
+        try:
+            return scores_view(_result_or_404(job_id), source)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc))
+
     @app.get("/api/v1/artifacts/{job_id}/receptor.pdb")
     def artifact_receptor(job_id: str):
         return PlainTextResponse(_result_or_404(job_id).receptor_pdb,
@@ -310,8 +346,9 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.get("/api/v1/artifacts/{job_id}/predictions.pdb")
-    def artifact_pdb(job_id: str, setup: str = Query(...), label: int = 0):
-        res = _result_or_404(job_id)
+    def artifact_pdb(job_id: str, setup: str = Query(...), label: int = 0,
+                     source: str = "raw"):
+        res = _scored(job_id, source)
         name = f"jbbind_{res.chain_id}_{setup}_{label}.pdb"
         return PlainTextResponse(
             predictions_pdb(res, setup, label), media_type="chemical/x-pdb",
@@ -319,13 +356,14 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     @app.get("/api/v1/artifacts/{job_id}/pymol.txt")
     def artifact_pymol(job_id: str, setup: str = Query(...), label: int = 0,
-                       threshold: float = 0.5):
-        res = _result_or_404(job_id)
+                       threshold: float = 0.5, source: str = "raw"):
+        res = _scored(job_id, source)
         return PlainTextResponse(pymol_selection(res, setup, label, threshold))
 
-    def _session(job_id: str, setup: str, label: int, threshold: float, ext: str):
+    def _session(job_id: str, setup: str, label: int, threshold: float, ext: str,
+                 source: str):
         """A PyMOL or ChimeraX session, plus the annotated PDB it expects beside it."""
-        res = _result_or_404(job_id)
+        res = _scored(job_id, source)
         tag = f"{slug(setup)}_{slug(res.label_names[setup][label])}"
         stem = f"jbbind_{res.chain_id}_{tag}"
         write = pymol_script if ext == "pml" else chimerax_script
@@ -336,20 +374,20 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     @app.get("/api/v1/artifacts/{job_id}/session.pml")
     def artifact_pml(job_id: str, setup: str = Query(...), label: int = 0,
-                     threshold: float = 0.5):
-        return _session(job_id, setup, label, threshold, "pml")
+                     threshold: float = 0.5, source: str = "raw"):
+        return _session(job_id, setup, label, threshold, "pml", source)
 
     @app.get("/api/v1/artifacts/{job_id}/session.cxc")
     def artifact_cxc(job_id: str, setup: str = Query(...), label: int = 0,
-                     threshold: float = 0.5):
-        return _session(job_id, setup, label, threshold, "cxc")
+                     threshold: float = 0.5, source: str = "raw"):
+        return _session(job_id, setup, label, threshold, "cxc", source)
 
     @app.get("/api/v1/artifacts/{job_id}/figure.png")
     def artifact_figure(job_id: str, setup: str = Query(...), label: int = 0,
-                        threshold: float = 0.5):
+                        threshold: float = 0.5, source: str = "raw"):
         from .core.figure import figure_png     # imports matplotlib; endpoint-only
 
-        res = _result_or_404(job_id)
+        res = _scored(job_id, source)
         tag = f"{slug(setup)}_{slug(res.label_names[setup][label])}"
         name = f"jbbind_{res.chain_id}_{tag}.png"
         return Response(
@@ -357,14 +395,14 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
     @app.get("/api/v1/artifacts/{job_id}/report.html")
-    def artifact_report(job_id: str, threshold: float = 0.5):
+    def artifact_report(job_id: str, threshold: float = 0.5, source: str = "raw"):
         """The standalone interactive report — Mol* inlined, so one file is enough.
 
         Every setup the job predicted goes in, not just the displayed one: the
         page has its own task selector and a download should not be narrower
         than the page it came from.
         """
-        res = _result_or_404(job_id)
+        res = _scored(job_id, source)
         name = f"{res.structure_id}_{res.chain_id}"
         return HTMLResponse(
             report_html(res, list(res.label_names), threshold, name),
@@ -404,12 +442,16 @@ def serialize(result: PredictionResult, user: UserSettings) -> dict:
         "residues": [
             {"i": r.seqres_index, "auth": r.auth_seq_id, "icode": r.auth_icode,
              "chain": r.auth_chain, "aa": r.one_letter, "resname": r.resname,
-             "sas": r.sas_area, "p": r.probs}
+             "sas": r.sas_area, "p": r.probs,
+             "pr": r.refined, "psd": r.refined_sd, "nb": r.neighbours}
             for r in result.residues
         ],
+        "refinement": result.refinement,
+        "has_contacts": result.contacts is not None,
         "unpredicted": result.unpredicted,
         "warnings": result.warnings,
         "timings_ms": result.timings_ms,
+        "device": result.device,
         "settings": asdict(user),
     }
 

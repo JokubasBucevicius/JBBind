@@ -3,14 +3,20 @@
  * Colour roles come from the dataviz reference palette and were validated for
  * contrast and colour-vision separation:
  *
- *   - Architecture series (slots 1-4, fixed order, never cycled): PASS in both modes on
+ *   - Architecture series (slots 1-3, fixed order, never cycled): PASS in both modes on
  *     the adjacent pairlist — worst CVD dE 9.1 light / 8.4 dark, worst normal-vision
- *     dE 22.9 light / 19.8 dark. Two light-mode slots (aqua 2.74:1, yellow 2.11:1) sit
- *     below 3:1 on the light surface, so the relief rule applies: every chart using them
- *     ships direct labels AND a table view.
- *   - Binding score: SEQUENTIAL, one hue (blue), light->dark for magnitude. Dark mode is
- *     re-stepped against the dark surface (low = recedes into the surface, high = stands
- *     out), not an automatic flip.
+ *     dE 22.9 light / 19.8 dark (measured with a fourth slot, since removed with the GNN
+ *     model; dropping a slot cannot lower either figure). One light-mode slot (aqua
+ *     2.74:1) sits below 3:1 on the light surface, so the relief rule applies: every chart
+ *     using it ships direct labels AND a table view.
+ *   - Binding score: SEQUENTIAL, one hue per kind of partner, light->dark for magnitude:
+ *     blue for protein-binding labels, red for nucleic-acid-binding labels. The red ramp
+ *     copies the blue one's OKLab lightness step for step, so equal scores read as equally
+ *     strong. Mid-ramp blue vs red stays >= 15.9 dE under protan/deutan simulation; the
+ *     palest dark-mode steps converge, which is tolerable because only one label is
+ *     coloured at a time and the legend names it. Dark mode is re-stepped against the
+ *     dark surface (low = recedes into the surface, high = stands out), not an
+ *     automatic flip.
  *   - Unpredicted residues get a desaturated grey deliberately OUTSIDE the ramp, so
  *     "no prediction" can never be misread as "low score".
  */
@@ -36,7 +42,6 @@
   --series-1: #2a78d6;  /* GNN+MLP */
   --series-2: #eb6834;  /* Joint   */
   --series-3: #1baf7a;  /* MLP     */
-  --series-4: #eda100;  /* GNN     */
 
   /* Sequential score ramp, low -> high. */
   --score-0: #cde2fb;
@@ -46,6 +51,25 @@
   --score-4: #2a78d6;
   --score-5: #1c5cab;
   --score-6: #0d366b;
+
+  /* Nucleic-acid score ramp: the blue ramp's lightness, step for step, in red. */
+  --score-na-0: #fad6d2;
+  --score-na-1: #f1aea8;
+  --score-na-2: #e4857e;
+  --score-na-3: #d75853;
+  --score-na-4: #c74845;
+  --score-na-5: #9e3432;
+  --score-na-6: #621b1a;
+
+  /* Diverging ramp for refined − raw: orange = lowered, purple = raised
+     (ColorBrewer PuOr, colour-blind safe, apart from both score ramps). */
+  --score-div-0: #b35806;
+  --score-div-1: #e08214;
+  --score-div-2: #fdb863;
+  --score-div-3: #e6e5e0;
+  --score-div-4: #b2abd2;
+  --score-div-5: #8073ac;
+  --score-div-6: #542788;
 
   --unpredicted: #b8b7b2;
   --danger: #e34948;
@@ -78,7 +102,6 @@
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
-    --series-4: #c98500;
 
     --score-0: #104281;
     --score-1: #1c5cab;
@@ -87,6 +110,21 @@
     --score-4: #6da7ec;
     --score-5: #9ec5f4;
     --score-6: #cde2fb;
+
+    --score-na-0: #762221;
+    --score-na-1: #9e3432;
+    --score-na-2: #b13f3c;
+    --score-na-3: #d75853;
+    --score-na-4: #e4857e;
+    --score-na-5: #f1aea8;
+    --score-na-6: #fad6d2;
+    --score-div-0: #fdb863;
+    --score-div-1: #e08214;
+    --score-div-2: #8a4a0b;
+    --score-div-3: #2e2e2c;
+    --score-div-4: #4f3f7f;
+    --score-div-5: #8073ac;
+    --score-div-6: #b2abd2;
 
     --unpredicted: #55554f;
     --danger: #e66767;
@@ -111,7 +149,6 @@
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
-  --series-4: #c98500;
   --score-0: #104281;
   --score-1: #1c5cab;
   --score-2: #256abf;
@@ -119,6 +156,20 @@
   --score-4: #6da7ec;
   --score-5: #9ec5f4;
   --score-6: #cde2fb;
+  --score-na-0: #762221;
+  --score-na-1: #9e3432;
+  --score-na-2: #b13f3c;
+  --score-na-3: #d75853;
+  --score-na-4: #e4857e;
+  --score-na-5: #f1aea8;
+  --score-na-6: #fad6d2;
+  --score-div-0: #fdb863;
+  --score-div-1: #e08214;
+  --score-div-2: #8a4a0b;
+  --score-div-3: #2e2e2c;
+  --score-div-4: #4f3f7f;
+  --score-div-5: #8073ac;
+  --score-div-6: #b2abd2;
   --unpredicted: #55554f;
   --danger: #e66767;
   --warn-bg: #2b2617;
@@ -126,6 +177,10 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Rules below that set `display` (.status is flex) would otherwise beat the
+   browser's own [hidden] rule, and a hidden element would stay on screen. */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -156,6 +211,10 @@ nav.tabs button {
 nav.tabs button:hover { background: var(--surface-2); color: var(--text-primary); }
 nav.tabs button[aria-current="page"] { background: var(--surface-3); color: var(--text-primary); font-weight: 550; }
 .topbar .spacer { flex: 1; }
+.topbar select.theme {
+  width: auto; padding: 3px 6px; font-size: 12px;
+  background: var(--surface-2); border-color: var(--border);
+}
 .topbar .device {
   font-family: var(--mono); font-size: 12px; color: var(--text-muted);
   padding: 3px 8px; background: var(--surface-2); border-radius: var(--radius-sm);
@@ -262,6 +321,16 @@ button.secondary:hover { background: var(--surface-3); }
   background: linear-gradient(to right,
     var(--score-0), var(--score-1), var(--score-2), var(--score-3),
     var(--score-4), var(--score-5), var(--score-6));
+}
+.legend .ramp.nucleic {
+  background: linear-gradient(to right,
+    var(--score-na-0), var(--score-na-1), var(--score-na-2), var(--score-na-3),
+    var(--score-na-4), var(--score-na-5), var(--score-na-6));
+}
+.legend .ramp.diverging {
+  background: linear-gradient(to right,
+    var(--score-div-0), var(--score-div-1), var(--score-div-2), var(--score-div-3),
+    var(--score-div-4), var(--score-div-5), var(--score-div-6));
 }
 .legend .ramp .tick {
   position: absolute; top: -3px; bottom: -3px; width: 2px;

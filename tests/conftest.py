@@ -20,7 +20,7 @@ MODELS = Path(__file__).parents[1] / "models"
 
 CHAINS = ["12as_A", "6oax_E", "3cqz_A"]
 SETUPS = ["protein_nucleic", "homo_hetero", "protein", "dna_rna", "nucleic"]
-ARCHS = ["mlp", "gnn", "gnn_mlp", "joint"]
+ARCHS = ["mlp", "gnn_mlp", "joint"]
 
 
 def _read_csv_gz(path: Path) -> pd.DataFrame:

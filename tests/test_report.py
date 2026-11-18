@@ -6,7 +6,7 @@ import re
 import pytest
 
 from jbbind.core import report
-from jbbind.core.colour import SCORE_STOPS, UNPREDICTED_COLOR, score_hex
+from jbbind.core.colour import NUCLEIC_STOPS, PROTEIN_STOPS, UNPREDICTED_COLOR, score_hex
 
 
 @pytest.fixture
@@ -75,8 +75,11 @@ class TestReportData:
         assert (r["i"], r["auth"], r["aa"], r["sas"]) == (1, 5, "R", 290.8)
         # The page never interpolates: continuous colours arrive resolved, so the
         # ramp keeps one definition shared with the figure.
-        assert r["c"]["dna_rna"] == [score_hex(0.931), score_hex(0.202)]
-        assert d["rampLo"] == SCORE_STOPS[0] and d["rampHi"] == SCORE_STOPS[-1]
+        # DNA and RNA are nucleic-acid labels, so both are on the red ramp.
+        assert r["c"]["dna_rna"] == [score_hex(0.931, "DNA"), score_hex(0.202, "RNA")]
+        assert d["kinds"]["dna_rna"] == ["nucleic", "nucleic"]
+        assert d["ramps"]["nucleic"] == {"lo": NUCLEIC_STOPS[0], "hi": NUCLEIC_STOPS[-1]}
+        assert d["ramps"]["protein"] == {"lo": PROTEIN_STOPS[0], "hi": PROTEIN_STOPS[-1]}
         assert d["unpredicted"] == UNPREDICTED_COLOR
 
     def test_is_json_serialisable(self, fake_result):

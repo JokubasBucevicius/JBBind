@@ -45,6 +45,32 @@ class TestScoreHex:
         assert colour.score_hex(-3.0) == colour.score_hex(0.0)
         assert colour.score_hex(9.9) == colour.score_hex(1.0)
 
+    def test_protein_labels_are_blue_and_nucleic_acid_labels_red(self):
+        for label in ("Protein", "Homo", "Hetero"):
+            assert colour.score_hex(1.0, label) == colour.PROTEIN_STOPS[-1]
+        for label in ("Nucleic acid", "DNA", "RNA"):
+            assert colour.score_hex(0.0, label) == colour.NUCLEIC_STOPS[0]
+            assert colour.score_hex(1.0, label) == colour.NUCLEIC_STOPS[-1]
+
+    def test_the_two_ramps_step_through_the_same_lightness(self):
+        """Equal scores must read as equally strong whichever colour they are drawn in."""
+        for b, r in zip(colour.PROTEIN_STOPS, colour.NUCLEIC_STOPS):
+            assert abs(colour.srgb_to_oklab(b)[0] - colour.srgb_to_oklab(r)[0]) < 0.01
+
+    def test_every_setup_label_has_a_kind(self):
+        from jbbind.core.nn.setups import SETUPS, label_kind
+        kinds = {n: label_kind(n) for s in SETUPS.values() for n in s.label_names}
+        assert kinds == {"Protein": "protein", "Homo": "protein", "Hetero": "protein",
+                         "Nucleic acid": "nucleic", "DNA": "nucleic", "RNA": "nucleic"}
+
+    def test_stylesheet_carries_both_ramps(self):
+        """The web viewer reads the ramps from CSS; they must be these stops."""
+        from pathlib import Path
+        css = (Path(colour.__file__).parents[1] / "static" / "style.css").read_text()
+        for i, (b, r) in enumerate(zip(colour.PROTEIN_STOPS, colour.NUCLEIC_STOPS)):
+            assert f"--score-{i}: {b};" in css
+            assert f"--score-na-{i}: {r};" in css
+
     def test_always_six_digit_hex(self):
         """viewer.js parses these with parseInt(hex, 16); a short form would silently shift."""
         for t in np.linspace(0, 1, 33):
