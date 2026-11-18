@@ -22,6 +22,12 @@ from jbbind.core.nn.setups import SETUPS
 from tests.conftest import MODELS
 
 DEVICE = torch.device("cpu")
+#: The references were computed on an AVX-512 host. On a CPU without AVX2 (common in VMs)
+#: torch and MKL fall back to other kernels, the float32 sums run in a different order,
+#: and probabilities move by up to ~6e-6. The failure modes above move them by 1e-3 or
+#: more, so 2e-5 keeps a 3x margin over hardware drift and still catches every one.
+#: The feature tensors (test_parity_tensors.py) stay bit-identical on any CPU.
+ATOL = 2e-5
 COMBOS = [(s, a) for s in SETUPS for a in ARCHS]
 
 
@@ -38,7 +44,7 @@ def test_probabilities_match_reference(fx, registry, setup, arch):
 
     ref = fx.ref_probs[f"{setup}/{arch}"]
     assert probs.shape == ref.shape, f"{setup}/{arch}: shape {probs.shape} vs {ref.shape}"
-    np.testing.assert_allclose(probs, ref, rtol=0, atol=1e-6,
+    np.testing.assert_allclose(probs, ref, rtol=0, atol=ATOL,
                                err_msg=f"{setup}/{arch} diverges from the reference")
 
 
