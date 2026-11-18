@@ -185,22 +185,9 @@ On a remote host with no display the script serves the output directory on
 
 ---
 
-## API
+## Downloads
 
-```
-GET  /healthz  /readyz  /api/v1/meta  /api/v1/models  /api/v1/metrics
-GET  /api/v1/structures/by-pdb-id/{id}     POST /api/v1/structures        (upload)
-POST /api/v1/predict            -> 202 {job_id}
-GET  /api/v1/jobs/{id}          /api/v1/jobs/{id}/events   (SSE progress)
-GET  /api/v1/artifacts/{id}/{receptor.pdb|predictions.csv|predictions.pdb|pymol.txt}
-GET  /api/v1/artifacts/{id}/{report.html|figure.png|session.pml|session.cxc}
-GET  /api/v1/settings           PUT /api/v1/settings
-```
-
-POST returns a `job_id`; poll `/jobs/{id}` or subscribe to `/jobs/{id}/events`. Errors are
-RFC 9457 `application/problem+json` with a `code`. Interactive docs at `/api/docs`.
-
-Downloads: `predictions.csv` (every residue, every label, every task), `predictions.pdb`
+`predictions.csv` (every residue, every label, every task), `predictions.pdb`
 (score in the B-factor column, **`-1.00` means not predicted**, never `0.00`),
 `receptor.pdb` (the atoms the model saw, renumbered to SEQRES indices), `report.html`,
 `figure.png`, and PyMOL / ChimeraX session scripts.
