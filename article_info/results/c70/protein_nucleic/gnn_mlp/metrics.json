@@ -1,0 +1,41 @@
+{
+  "setup": "protein_nucleic",
+  "arch": "gnn_mlp",
+  "arch_display": "GNN+MLP",
+  "label_names": [
+    "Protein",
+    "Nucleic acid"
+  ],
+  "n_test_residues": 3026449,
+  "positives_per_label": {
+    "Protein": 502667,
+    "Nucleic acid": 17199
+  },
+  "metrics": {
+    "F1 (Protein)": 0.4288546941499808,
+    "Precision (Protein)": 0.2978387514161719,
+    "Recall (Protein)": 0.7656599697215055,
+    "Bal Acc (Protein)": 0.7030711942837536,
+    "ROC AUC (Protein)": 0.7744175954653144,
+    "PR AUC (Protein)": 0.415677398411804,
+    "F1 (Nucleic acid)": 0.2077243669840144,
+    "Precision (Nucleic acid)": 0.12058025269068788,
+    "Recall (Nucleic acid)": 0.749113320541892,
+    "Bal Acc (Nucleic acid)": 0.8589437999236833,
+    "ROC AUC (Nucleic acid)": 0.9656147063328967,
+    "PR AUC (Nucleic acid)": 0.2884730909408055,
+    "F1 (macro)": 0.3182895305669976,
+    "Precision (macro)": 0.2092095020534299,
+    "Recall (macro)": 0.7573866451316987,
+    "ROC AUC (macro)": 0.8700161508991056,
+    "PR AUC (macro)": 0.35207524467630474,
+    "Bal Acc (macro)": 0.7810074971037184,
+    "Hamming Loss": 0.185600352095806,
+    "Exact Match": 0.6344478297833533
+  },
+  "n_test_chains": 11287,
+  "split": "held_out_test",
+  "cluster_filter": "70",
+  "checkpoint": "all_class/training/runs/protein_nucleic/gnn_mlp/model.pt",
+  "feature_mlp": "all_class/training/runs/protein_nucleic/mlp/model.pt"
+}

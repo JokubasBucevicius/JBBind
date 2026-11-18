@@ -1,0 +1,40 @@
+{
+  "setup": "protein_nucleic",
+  "arch": "joint",
+  "arch_display": "Joint",
+  "label_names": [
+    "Protein",
+    "Nucleic acid"
+  ],
+  "n_test_residues": 3560201,
+  "positives_per_label": {
+    "Protein": 604705,
+    "Nucleic acid": 19274
+  },
+  "metrics": {
+    "F1 (Protein)": 0.35856465818903055,
+    "Precision (Protein)": 0.22970340222616922,
+    "Recall (Protein)": 0.8167569310655609,
+    "Bal Acc (Protein)": 0.6281794735530924,
+    "ROC AUC (Protein)": 0.7046290182805293,
+    "PR AUC (Protein)": 0.3220992749618141,
+    "F1 (Nucleic acid)": 0.14135074644085005,
+    "Precision (Nucleic acid)": 0.07757533393104077,
+    "Recall (Nucleic acid)": 0.7945937532427104,
+    "Bal Acc (Nucleic acid)": 0.8715824238805898,
+    "ROC AUC (Nucleic acid)": 0.9477781331103122,
+    "PR AUC (Nucleic acid)": 0.2188160998874087,
+    "F1 (macro)": 0.2499577023149403,
+    "Precision (macro)": 0.153639368078605,
+    "Recall (macro)": 0.8056753421541356,
+    "ROC AUC (macro)": 0.8262035756954207,
+    "PR AUC (macro)": 0.2704576874246114,
+    "Bal Acc (macro)": 0.7498809487168412,
+    "Hamming Loss": 0.2743001027189195,
+    "Exact Match": 0.49582256732133945
+  },
+  "n_test_chains": 13476,
+  "split": "held_out_test",
+  "cluster_filter": "95",
+  "checkpoint": "all_class/training/runs/protein_nucleic/joint/model.pt"
+}

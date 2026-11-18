@@ -1,0 +1,32 @@
+{
+  "setup": "protein",
+  "arch": "joint",
+  "arch_display": "Joint",
+  "label_names": [
+    "Protein"
+  ],
+  "n_test_residues": 2974959,
+  "positives_per_label": {
+    "Protein": 502667
+  },
+  "metrics": {
+    "F1 (Protein)": 0.4698567861126567,
+    "Precision (Protein)": 0.35136286326998445,
+    "Recall (Protein)": 0.7089405113126582,
+    "Bal Acc (Protein)": 0.721422864814147,
+    "ROC AUC (Protein)": 0.7950458494414222,
+    "PR AUC (Protein)": 0.46171163437514573,
+    "F1 (macro)": 0.4698567861126567,
+    "Precision (macro)": 0.35136286326998445,
+    "Recall (macro)": 0.7089405113126582,
+    "ROC AUC (macro)": 0.7950458494414222,
+    "PR AUC (macro)": 0.46171163437514573,
+    "Bal Acc (macro)": 0.721422864814147,
+    "Hamming Loss": 0.2703129690190688,
+    "Exact Match": 0.7296870309809311
+  },
+  "n_test_chains": 11148,
+  "split": "held_out_test",
+  "cluster_filter": "70",
+  "checkpoint": "all_class/training/runs/protein/joint/model.pt"
+}

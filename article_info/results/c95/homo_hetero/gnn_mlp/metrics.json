@@ -1,0 +1,41 @@
+{
+  "setup": "homo_hetero",
+  "arch": "gnn_mlp",
+  "arch_display": "GNN+MLP",
+  "label_names": [
+    "Homo",
+    "Hetero"
+  ],
+  "n_test_residues": 3506246,
+  "positives_per_label": {
+    "Homo": 357883,
+    "Hetero": 254044
+  },
+  "metrics": {
+    "F1 (Homo)": 0.40212659435748177,
+    "Precision (Homo)": 0.2833461023887663,
+    "Recall (Homo)": 0.6923743234520779,
+    "Bal Acc (Homo)": 0.746655913264537,
+    "ROC AUC (Homo)": 0.8322412226175551,
+    "PR AUC (Homo)": 0.4169658780800187,
+    "F1 (Hetero)": 0.3615600431632496,
+    "Precision (Hetero)": 0.24465442569324874,
+    "Recall (Hetero)": 0.6924312323849412,
+    "Bal Acc (Hetero)": 0.7627186501368566,
+    "ROC AUC (Hetero)": 0.8430484610328888,
+    "PR AUC (Hetero)": 0.3580195753409982,
+    "F1 (macro)": 0.3818433187603657,
+    "Precision (macro)": 0.2640002640410075,
+    "Recall (macro)": 0.6924027779185096,
+    "ROC AUC (macro)": 0.8376448418252219,
+    "PR AUC (macro)": 0.3874927267105085,
+    "Bal Acc (macro)": 0.7546872817006968,
+    "Hamming Loss": 0.1936613974033767,
+    "Exact Match": 0.6427794855238338
+  },
+  "n_test_chains": 13327,
+  "split": "held_out_test",
+  "cluster_filter": "95",
+  "checkpoint": "all_class/training/runs/homo_hetero/gnn_mlp/model.pt",
+  "feature_mlp": "all_class/training/runs/homo_hetero/mlp/model.pt"
+}

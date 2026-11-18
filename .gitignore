@@ -17,6 +17,8 @@ apptainer-tmp/
 /data/
 cache/
 results/
+# ...except the paper's metrics in article_info, which are not runtime output
+!/article_info/results/
 *.log
 
 # Default --out of predict_bindingsites.py

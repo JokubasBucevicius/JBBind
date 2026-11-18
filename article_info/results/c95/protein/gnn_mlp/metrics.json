@@ -1,0 +1,33 @@
+{
+  "setup": "protein",
+  "arch": "gnn_mlp",
+  "arch_display": "GNN+MLP",
+  "label_names": [
+    "Protein"
+  ],
+  "n_test_residues": 3506246,
+  "positives_per_label": {
+    "Protein": 604705
+  },
+  "metrics": {
+    "F1 (Protein)": 0.47027483789309404,
+    "Precision (Protein)": 0.34222211511233486,
+    "Recall (Protein)": 0.7514540147675313,
+    "Bal Acc (Protein)": 0.7252193978066478,
+    "ROC AUC (Protein)": 0.7985059723340652,
+    "PR AUC (Protein)": 0.4789932386564284,
+    "F1 (macro)": 0.47027483789309404,
+    "Precision (macro)": 0.34222211511233486,
+    "Recall (macro)": 0.7514540147675313,
+    "ROC AUC (macro)": 0.7985059723340652,
+    "PR AUC (macro)": 0.4789932386564284,
+    "Bal Acc (macro)": 0.7252193978066478,
+    "Hamming Loss": 0.29196610848183496,
+    "Exact Match": 0.708033891518165
+  },
+  "n_test_chains": 13327,
+  "split": "held_out_test",
+  "cluster_filter": "95",
+  "checkpoint": "all_class/training/runs/protein/gnn_mlp/model.pt",
+  "feature_mlp": "all_class/training/runs/protein/mlp/model.pt"
+}

@@ -1,0 +1,97 @@
+model,kind,true,predicted,count,row_frac
+MLP (binary),binary,Non-bind,Non-bind,2029751,0.8209997039184692
+MLP (binary),binary,Non-bind,Binding (unresolved),442541,0.1790002960815308
+MLP (binary),binary,Homo,Non-bind,140588,0.4670573539573699
+MLP (binary),binary,Homo,Binding (unresolved),160420,0.5329426460426301
+MLP (binary),binary,Hetero,Non-bind,90945,0.4649112044903843
+MLP (binary),binary,Hetero,Binding (unresolved),104673,0.5350887955096156
+MLP (binary),binary,Both,Non-bind,2171,0.3593775864923026
+MLP (binary),binary,Both,Binding (unresolved),3870,0.6406224135076974
+GNN (binary),binary,Non-bind,Non-bind,1546092,0.582108349293925
+GNN (binary),binary,Non-bind,Binding (unresolved),1109929,0.417891650706075
+GNN (binary),binary,Homo,Non-bind,86942,0.28362922220699827
+GNN (binary),binary,Homo,Binding (unresolved),219592,0.7163707777930017
+GNN (binary),binary,Hetero,Non-bind,46534,0.2272511952492809
+GNN (binary),binary,Hetero,Binding (unresolved),158235,0.772748804750719
+GNN (binary),binary,Both,Non-bind,1135,0.17820693986497096
+GNN (binary),binary,Both,Binding (unresolved),5234,0.8217930601350291
+GNN+MLP (binary),binary,Non-bind,Non-bind,1736664,0.7024510049783763
+GNN+MLP (binary),binary,Non-bind,Binding (unresolved),735628,0.2975489950216237
+GNN+MLP (binary),binary,Homo,Non-bind,84846,0.2818729070323712
+GNN+MLP (binary),binary,Homo,Binding (unresolved),216162,0.7181270929676288
+GNN+MLP (binary),binary,Hetero,Non-bind,49988,0.25553885634246337
+GNN+MLP (binary),binary,Hetero,Binding (unresolved),145630,0.7444611436575366
+GNN+MLP (binary),binary,Both,Non-bind,934,0.15461016388015228
+GNN+MLP (binary),binary,Both,Binding (unresolved),5107,0.8453898361198477
+Joint (binary),binary,Non-bind,Non-bind,1814428,0.7339052183156358
+Joint (binary),binary,Non-bind,Binding (unresolved),657864,0.2660947816843641
+Joint (binary),binary,Homo,Non-bind,88916,0.29539414234837613
+Joint (binary),binary,Homo,Binding (unresolved),212092,0.7046058576516239
+Joint (binary),binary,Hetero,Non-bind,56277,0.28768824954758765
+Joint (binary),binary,Hetero,Binding (unresolved),139341,0.7123117504524124
+Joint (binary),binary,Both,Non-bind,1113,0.1842410196987254
+Joint (binary),binary,Both,Binding (unresolved),4928,0.8157589803012746
+MLP (3-class),3-class,Non-bind,Non-bind,1723904,0.6972898023372643
+MLP (3-class),3-class,Non-bind,Homo,544674,0.22031135480760364
+MLP (3-class),3-class,Non-bind,Hetero,175067,0.07081161933946314
+MLP (3-class),3-class,Non-bind,Both,28647,0.01158722351566886
+MLP (3-class),3-class,Homo,Non-bind,97803,0.3249182745973529
+MLP (3-class),3-class,Homo,Homo,189176,0.6284749906979217
+MLP (3-class),3-class,Homo,Hetero,6382,0.021202094296497102
+MLP (3-class),3-class,Homo,Both,7647,0.025404640408228353
+MLP (3-class),3-class,Hetero,Non-bind,63691,0.32558864726149944
+MLP (3-class),3-class,Hetero,Homo,39595,0.20240979868928216
+MLP (3-class),3-class,Hetero,Hetero,79820,0.40804015990348536
+MLP (3-class),3-class,Hetero,Both,12512,0.06396139414573301
+MLP (3-class),3-class,Both,Non-bind,1376,0.22777685813607018
+MLP (3-class),3-class,Both,Homo,3611,0.5977487170998179
+MLP (3-class),3-class,Both,Hetero,460,0.07614633338851183
+MLP (3-class),3-class,Both,Both,594,0.09832809137560007
+GNN (3-class),3-class,Non-bind,Non-bind,1541610,0.5804208626362517
+GNN (3-class),3-class,Non-bind,Homo,328711,0.12376069315717007
+GNN (3-class),3-class,Non-bind,Hetero,87950,0.03311344300365095
+GNN (3-class),3-class,Non-bind,Both,697750,0.2627050012029272
+GNN (3-class),3-class,Homo,Non-bind,87816,0.28648045567539
+GNN (3-class),3-class,Homo,Homo,50194,0.16374692530029294
+GNN (3-class),3-class,Homo,Hetero,8904,0.029047348744348098
+GNN (3-class),3-class,Homo,Both,159620,0.520725270279969
+GNN (3-class),3-class,Hetero,Non-bind,45953,0.22441385170606878
+GNN (3-class),3-class,Hetero,Homo,22632,0.11052454228911603
+GNN (3-class),3-class,Hetero,Hetero,10256,0.0500857063325015
+GNN (3-class),3-class,Hetero,Both,125928,0.6149758996723137
+GNN (3-class),3-class,Both,Non-bind,1128,0.17710786622703723
+GNN (3-class),3-class,Both,Homo,747,0.1172868582195007
+GNN (3-class),3-class,Both,Hetero,195,0.030617051342439944
+GNN (3-class),3-class,Both,Both,4299,0.6749882242110221
+GNN+MLP (3-class),3-class,Non-bind,Non-bind,1625671,0.6575562271770486
+GNN+MLP (3-class),3-class,Non-bind,Homo,456120,0.1844927702714728
+GNN+MLP (3-class),3-class,Non-bind,Hetero,341856,0.13827492868965316
+GNN+MLP (3-class),3-class,Non-bind,Both,48645,0.019676073861825384
+GNN+MLP (3-class),3-class,Homo,Non-bind,82237,0.273205363312603
+GNN+MLP (3-class),3-class,Homo,Homo,185384,0.6158773188752459
+GNN+MLP (3-class),3-class,Homo,Hetero,15507,0.051516903205230426
+GNN+MLP (3-class),3-class,Homo,Both,17880,0.05940041460692075
+GNN+MLP (3-class),3-class,Hetero,Non-bind,39594,0.20240468668527437
+GNN+MLP (3-class),3-class,Hetero,Homo,28586,0.1461317465672893
+GNN+MLP (3-class),3-class,Hetero,Hetero,111600,0.5704996472717234
+GNN+MLP (3-class),3-class,Hetero,Both,15838,0.08096391947571287
+GNN+MLP (3-class),3-class,Both,Non-bind,990,0.16388015229266678
+GNN+MLP (3-class),3-class,Both,Homo,3075,0.509021685151465
+GNN+MLP (3-class),3-class,Both,Hetero,824,0.13640125806985598
+GNN+MLP (3-class),3-class,Both,Both,1152,0.19069690448601226
+Joint (3-class),3-class,Non-bind,Non-bind,1633696,0.6608022029760239
+Joint (3-class),3-class,Non-bind,Homo,379946,0.15368168484952424
+Joint (3-class),3-class,Non-bind,Hetero,424084,0.17153475398537066
+Joint (3-class),3-class,Non-bind,Both,34566,0.013981358189081226
+Joint (3-class),3-class,Homo,Non-bind,91247,0.30313812257481526
+Joint (3-class),3-class,Homo,Homo,176580,0.586628926805932
+Joint (3-class),3-class,Homo,Hetero,20882,0.0693735714665391
+Joint (3-class),3-class,Homo,Both,12299,0.04085937915271355
+Joint (3-class),3-class,Hetero,Non-bind,34475,0.17623633816928913
+Joint (3-class),3-class,Hetero,Homo,26767,0.13683301127708083
+Joint (3-class),3-class,Hetero,Hetero,123132,0.6294512774898016
+Joint (3-class),3-class,Hetero,Both,11244,0.057479373063828484
+Joint (3-class),3-class,Both,Non-bind,1000,0.16553550736633008
+Joint (3-class),3-class,Both,Homo,2967,0.49114385035590136
+Joint (3-class),3-class,Both,Hetero,1215,0.20112564145009104
+Joint (3-class),3-class,Both,Both,859,0.14219500082767753
