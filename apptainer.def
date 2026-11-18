@@ -36,6 +36,7 @@ From: python:3.13-slim
     jbbind /opt/stage/jbbind
     tests /opt/stage/tests
     pytest.ini /opt/stage/pytest.ini
+    predict_bindingsites.py /opt/stage/predict_bindingsites.py
 
 %post
     set -eux
@@ -96,6 +97,7 @@ From: python:3.13-slim
         fi
     done
     cp /opt/stage/pytest.ini /app/pytest.ini
+    cp /opt/stage/predict_bindingsites.py /app/predict_bindingsites.py
 
     # Build artefacts from the host must not travel into the image.
     find /app -name __pycache__ -type d -prune -exec rm -rf {} + || true
@@ -103,7 +105,8 @@ From: python:3.13-slim
 
     # Fail loudly with a listing rather than a bare chmod error further down.
     for required in /app/tools/describe-receptor-chain /app/jbbind/main.py \
-                    /app/models/MANIFEST.json /app/tests/conftest.py; do
+                    /app/models/MANIFEST.json /app/tests/conftest.py \
+                    /app/predict_bindingsites.py; do
         if [ ! -f "$required" ]; then
             echo "ERROR: $required is missing. /app contains:" >&2
             find /app -maxdepth 2 >&2

@@ -99,7 +99,7 @@ COPY tools/ /app/tools/
 COPY models/ /app/models/
 COPY jbbind/ /app/jbbind/
 COPY tests/ /app/tests/
-COPY pytest.ini /app/
+COPY pytest.ini predict_bindingsites.py /app/
 RUN chmod +x /app/tools/describe-receptor-chain
 
 # A real `jbbind` executable, so `docker run <img> jbbind ...` works alongside the
