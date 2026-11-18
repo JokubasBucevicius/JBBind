@@ -110,7 +110,20 @@ From: python:3.13-slim
             exit 1
         fi
     done
-    test "$(python -c 'import json;print(len(json.load(open("/app/models/MANIFEST.json"))))')" = "20"
+    # One manifest entry per model directory, and every entry has its checkpoint.
+    # Counted rather than hardcoded, so dropping or adding an architecture does not
+    # break the build. (gnn_mlp also carries embedder.pt, so count model.pt only.)
+    python - <<'CHECK'
+import json, pathlib, sys
+root = pathlib.Path("/app/models")
+manifest = json.load(open(root / "MANIFEST.json"))
+on_disk = {str(p.parent.relative_to(root)) for p in root.glob("*/*/model.pt")}
+missing, extra = set(manifest) - on_disk, on_disk - set(manifest)
+if missing or extra or not manifest:
+    sys.exit(f"MANIFEST.json and models/ disagree: missing {sorted(missing)}, "
+             f"unlisted {sorted(extra)}")
+print(f"{len(manifest)} models, all checkpoints present")
+CHECK
     chmod +x /app/tools/describe-receptor-chain
 
     # A real `jbbind` executable, so `apptainer exec <img> jbbind ...` works. %runscript

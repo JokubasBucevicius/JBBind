@@ -26,8 +26,8 @@ pip install -r requirements.txt
 export PATH="$PATH:/path/to/voronota/expansion_js"   # voronota-js must be on PATH
 ```
 
-The ESM-2 650M weights (2.6 GB) download to `~/.cache/torch` on first use; the 20 model
-checkpoints ship in `models/`.
+The ESM-2 650M weights (2.6 GB) download to `~/.cache/torch` on first use; the 15 models
+(20 checkpoint files) ship in `models/`.
 
 ### Container
 

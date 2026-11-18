@@ -36,7 +36,7 @@ results/
 .DS_Store
 
 # TRACKED ON PURPOSE, despite the patterns above:
-#   models/**/*.pt          20 checkpoints, ~205 MB total — the app is useless without them
+#   models/**/*.pt          15 models (20 .pt files) — the app is useless without them
 #   models/MANIFEST.json    provenance + sha256 of each checkpoint
 #   models/METRICS.json     precomputed dashboard data (~250 KB)
 #   tests/data/**           golden parity fixtures (~12 MB)
